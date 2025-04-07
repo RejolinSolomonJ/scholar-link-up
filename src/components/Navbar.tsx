@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface NavbarProps {
   toggleSidebar: () => void;
@@ -19,13 +20,14 @@ interface NavbarProps {
 
 const Navbar = ({ toggleSidebar }: NavbarProps) => {
   const isMobile = useIsMobile();
+  const { user, signOut, isAuthenticated } = useAuth();
   
-  // Mock user data - in a real app, this would come from auth context
-  const user = {
-    name: "Jane Smith",
-    role: "Student",
-    image: "", // Empty for now
-  };
+  // Get user info from Supabase auth
+  const userData = user ? {
+    name: user.user_metadata?.name || "User",
+    role: user.user_metadata?.role || "Student",
+    image: user.user_metadata?.avatar_url || "",
+  } : null;
 
   return (
     <header className="bg-white border-b py-3 px-4 sticky top-0 z-10">
@@ -40,7 +42,7 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
           </Link>
         </div>
 
-        {user ? (
+        {isAuthenticated ? (
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" asChild>
               <Link to="/messages">
@@ -54,17 +56,17 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.image} alt={user.name} />
-                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={userData?.image} alt={userData?.name} />
+                    <AvatarFallback>{userData?.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-sm font-medium leading-none">{userData?.name}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.role}
+                      {userData?.role}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -79,8 +81,8 @@ const Navbar = ({ toggleSidebar }: NavbarProps) => {
                   <Link to="/bookings">Bookings</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/">Logout</Link>
+                <DropdownMenuItem onClick={signOut}>
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
