@@ -1,16 +1,9 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// Replace these with your actual Supabase URL and anon key
-// For development, we'll provide fallback values to prevent errors
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-project.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key-for-development-only'
+// Your Supabase credentials
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vanarjtvxuveoxgnwhyw.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhbmFyanR2eHV2ZW94Z253aHl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQwMjIyMjQsImV4cCI6MjA1OTU5ODIyNH0.1qNxGfJBw7svHahD8dfCNt2ioVJdJS6csfgZUlgmCJ0'
 
-// Warn users that they should set up real environment variables
-if (supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder')) {
-  console.warn(
-    'Using placeholder Supabase credentials. To use actual Supabase functionality, please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables. You can get these from your Supabase project settings.'
-  )
-}
-
+// Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
