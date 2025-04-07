@@ -97,7 +97,7 @@ const Footer = () => {
         <div className="border-t mt-12 pt-6 text-center text-muted-foreground">
           <p>© {new Date().getFullYear()} Scholar LinkUp. All rights reserved.</p>
           <p className="mt-1">
-            Developed by <span className="text-foreground font-medium">Lin's Infotechs</span>
+            Developed by <span className="text-foreground font-medium">Lin's Infotechs Company Ltd.</span>
           </p>
         </div>
       </div>
