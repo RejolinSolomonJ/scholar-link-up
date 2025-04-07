@@ -1,322 +1,270 @@
 
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, Video, MessageSquare } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Calendar as CalendarIcon, Clock, MapPin, Video, User } from "lucide-react";
+import { getUserBookings, updateBookingStatus } from "@/lib/api";
+import { format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/use-profile";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Booking, BookingStatus } from "@/types/database.types";
 import { toast } from "sonner";
 
-// Mock data - would come from API
-const upcomingSessions = [
-  {
-    id: 1,
-    subject: "Physics",
-    topic: "Quantum Mechanics",
-    date: "April 10, 2023",
-    time: "3:00 PM - 4:30 PM",
-    student: {
-      name: "Alex Johnson",
-      avatar: ""
-    },
-    mode: "online",
-    status: "confirmed"
-  },
-  {
-    id: 2,
-    subject: "Math",
-    topic: "Calculus II",
-    date: "April 12, 2023",
-    time: "5:00 PM - 6:00 PM",
-    student: {
-      name: "Sarah Brown",
-      avatar: ""
-    },
-    mode: "in-person",
-    location: "Boston Public Library",
-    status: "confirmed"
-  },
-  {
-    id: 3,
-    subject: "Physics",
-    topic: "Thermodynamics",
-    date: "April 15, 2023",
-    time: "10:00 AM - 11:30 AM",
-    student: {
-      name: "Michael Chen",
-      avatar: ""
-    },
-    mode: "online",
-    status: "pending"
+const getStatusColor = (status: BookingStatus) => {
+  switch (status) {
+    case "requested":
+      return "bg-yellow-100 text-yellow-800";
+    case "confirmed":
+      return "bg-green-100 text-green-800";
+    case "completed":
+      return "bg-blue-100 text-blue-800";
+    case "cancelled":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-gray-100 text-gray-800";
   }
-];
+};
 
-const pastSessions = [
-  {
-    id: 101,
-    subject: "Physics",
-    topic: "Electromagnetism",
-    date: "March 28, 2023",
-    time: "4:00 PM - 5:30 PM",
-    student: {
-      name: "James Wilson",
-      avatar: ""
-    },
-    mode: "online",
-    status: "completed",
-    reviewed: true
-  },
-  {
-    id: 102,
-    subject: "Math",
-    topic: "Differential Equations",
-    date: "March 25, 2023",
-    time: "2:00 PM - 3:00 PM",
-    student: {
-      name: "Emily Davis",
-      avatar: ""
-    },
-    mode: "in-person",
-    location: "Coffee Shop",
-    status: "completed",
-    reviewed: false
-  }
-];
-
-const Bookings = () => {
-  const handleAccept = (id: number) => {
-    toast.success("Session accepted successfully!");
+const BookingCard = ({ booking, isStudent, onStatusChange }: { 
+  booking: Booking; 
+  isStudent: boolean;
+  onStatusChange: () => void;
+}) => {
+  const [updating, setUpdating] = useState(false);
+  
+  const handleStatusChange = async (newStatus: BookingStatus) => {
+    try {
+      setUpdating(true);
+      await updateBookingStatus(booking.id, newStatus);
+      toast.success(`Booking ${newStatus} successfully`);
+      onStatusChange();
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+      toast.error('Failed to update booking status');
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  const handleDecline = (id: number) => {
-    toast.success("Session declined.");
-  };
-
-  const handleCancel = (id: number) => {
-    toast.success("Session canceled successfully!");
-  };
+  const tutor = (booking as any).profiles;
+  const subject = (booking as any).subjects;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">My Bookings</h1>
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center space-x-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={isStudent ? tutor?.avatar_url : undefined} />
+              <AvatarFallback>{isStudent ? tutor?.name?.charAt(0).toUpperCase() : 'S'}</AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle className="text-base">
+                {isStudent ? `Session with ${tutor?.name}` : 'Student Session'}
+              </CardTitle>
+              <CardDescription>
+                {subject?.name || 'General Tutoring'}
+              </CardDescription>
+            </div>
+          </div>
+          <Badge className={getStatusColor(booking.status)}>
+            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center text-muted-foreground">
+            <CalendarIcon className="mr-1 h-4 w-4" />
+            {format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy')}
+          </div>
+          <div className="flex items-center text-muted-foreground">
+            <Clock className="mr-1 h-4 w-4" />
+            {format(new Date(booking.start_time), 'h:mm a')} - {format(new Date(booking.end_time), 'h:mm a')}
+          </div>
+          {booking.mode === 'online' ? (
+            <div className="flex items-center text-muted-foreground">
+              <Video className="mr-1 h-4 w-4" />
+              Online Session
+              {booking.meeting_link && (
+                <a href={booking.meeting_link} target="_blank" rel="noopener noreferrer" className="ml-1 text-primary underline">
+                  Join
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center text-muted-foreground">
+              <MapPin className="mr-1 h-4 w-4" />
+              {booking.location || 'Location not specified'}
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <div className="flex gap-2 w-full justify-end">
+          {booking.status === 'requested' && (
+            <>
+              {!isStudent && (
+                <Button 
+                  size="sm" 
+                  onClick={() => handleStatusChange('confirmed')}
+                  disabled={updating}
+                >
+                  Confirm
+                </Button>
+              )}
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => handleStatusChange('cancelled')}
+                disabled={updating}
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+          {booking.status === 'confirmed' && (
+            <>
+              <Button 
+                size="sm" 
+                onClick={() => handleStatusChange('completed')}
+                disabled={updating}
+              >
+                Mark Completed
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => handleStatusChange('cancelled')}
+                disabled={updating}
+              >
+                Cancel
+              </Button>
+            </>
+          )}
+        </div>
+      </CardFooter>
+    </Card>
+  );
+};
+
+const BookingsList = ({ bookings, filter, isStudent, onStatusChange }: { 
+  bookings: Booking[];
+  filter: string;
+  isStudent: boolean;
+  onStatusChange: () => void;
+}) => {
+  const filteredBookings = filter === 'all' 
+    ? bookings 
+    : bookings.filter(booking => booking.status === filter);
+
+  if (filteredBookings.length === 0) {
+    return (
+      <div className="py-8 text-center">
+        <p className="text-muted-foreground">No bookings found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {filteredBookings.map(booking => (
+        <BookingCard 
+          key={booking.id} 
+          booking={booking} 
+          isStudent={isStudent}
+          onStatusChange={onStatusChange}
+        />
+      ))}
+    </div>
+  );
+};
+
+const Bookings = () => {
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
+
+  const loadBookings = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const userBookings = await getUserBookings(user.id);
+      setBookings(userBookings);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      toast.error('Failed to load bookings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBookings();
+  }, [user]);
+
+  const isStudent = profile?.role === 'student';
+
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Your Bookings</h1>
       
-      <Tabs defaultValue="upcoming" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="upcoming">Upcoming Sessions</TabsTrigger>
-          <TabsTrigger value="past">Past Sessions</TabsTrigger>
-          <TabsTrigger value="pending">Pending Requests</TabsTrigger>
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-6">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="requested">Requested</TabsTrigger>
+          <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="upcoming">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingSessions.filter(s => s.status === "confirmed").map((session) => (
-              <Card key={session.id} className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between">
-                    <div>
-                      <CardTitle>{session.subject}</CardTitle>
-                      <CardDescription>{session.topic}</CardDescription>
-                    </div>
-                    <Badge>{session.mode === "online" ? "Online" : "In-Person"}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {session.date}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {session.time}
-                    </div>
-                    {session.mode === "in-person" && session.location && (
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {session.location}
+        <TabsContent value={activeTab}>
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <div>
+                          <Skeleton className="h-5 w-40 mb-1" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
                       </div>
-                    )}
-                    <div className="flex items-center mt-3">
-                      <Avatar className="h-8 w-8 mr-2">
-                        <AvatarImage src={session.student.avatar} />
-                        <AvatarFallback>{session.student.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span>{session.student.name}</span>
+                      <Skeleton className="h-6 w-24" />
                     </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between pt-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to={`/messages?user=${session.student.name.toLowerCase().replace(' ', '')}`}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Message
-                    </Link>
-                  </Button>
-                  {session.mode === "online" ? (
-                    <Button size="sm">
-                      <Video className="h-4 w-4 mr-2" />
-                      Join Session
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={() => handleCancel(session.id)}>
-                      Cancel
-                    </Button>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
-            
-            {upcomingSessions.filter(s => s.status === "confirmed").length === 0 && (
-              <div className="col-span-full">
-                <Card className="shadow-sm">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-muted-foreground">No upcoming sessions scheduled.</p>
-                    <Button asChild className="mt-4">
-                      <Link to="/search">Find Tutors</Link>
-                    </Button>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
                   </CardContent>
+                  <CardFooter>
+                    <div className="w-full flex justify-end gap-2">
+                      <Skeleton className="h-9 w-24" />
+                      <Skeleton className="h-9 w-24" />
+                    </div>
+                  </CardFooter>
                 </Card>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="past">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {pastSessions.map((session) => (
-              <Card key={session.id} className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between">
-                    <div>
-                      <CardTitle>{session.subject}</CardTitle>
-                      <CardDescription>{session.topic}</CardDescription>
-                    </div>
-                    <Badge variant="outline">{session.mode === "online" ? "Online" : "In-Person"}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {session.date}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {session.time}
-                    </div>
-                    {session.mode === "in-person" && session.location && (
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {session.location}
-                      </div>
-                    )}
-                    <div className="flex items-center mt-3">
-                      <Avatar className="h-8 w-8 mr-2">
-                        <AvatarImage src={session.student.avatar} />
-                        <AvatarFallback>{session.student.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span>{session.student.name}</span>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between pt-2">
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to={`/messages?user=${session.student.name.toLowerCase().replace(' ', '')}`}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Message
-                    </Link>
-                  </Button>
-                  {!session.reviewed && (
-                    <Button size="sm">Leave Review</Button>
-                  )}
-                  {session.reviewed && (
-                    <Badge variant="outline">Reviewed</Badge>
-                  )}
-                </CardFooter>
-              </Card>
-            ))}
-            
-            {pastSessions.length === 0 && (
-              <div className="col-span-full">
-                <Card className="shadow-sm">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-muted-foreground">No past sessions found.</p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="pending">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingSessions.filter(s => s.status === "pending").map((session) => (
-              <Card key={session.id} className="shadow-sm">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between">
-                    <div>
-                      <CardTitle>{session.subject}</CardTitle>
-                      <CardDescription>{session.topic}</CardDescription>
-                    </div>
-                    <Badge variant="secondary">Pending</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {session.date}
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {session.time}
-                    </div>
-                    {session.mode === "in-person" && session.location && (
-                      <div className="flex items-center text-sm">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {session.location}
-                      </div>
-                    )}
-                    <div className="flex items-center mt-3">
-                      <Avatar className="h-8 w-8 mr-2">
-                        <AvatarImage src={session.student.avatar} />
-                        <AvatarFallback>{session.student.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span>{session.student.name}</span>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between gap-2 pt-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleDecline(session.id)}
-                  >
-                    Decline
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleAccept(session.id)}
-                  >
-                    Accept
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-            
-            {upcomingSessions.filter(s => s.status === "pending").length === 0 && (
-              <div className="col-span-full">
-                <Card className="shadow-sm">
-                  <CardContent className="pt-6 text-center">
-                    <p className="text-muted-foreground">No pending session requests.</p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <BookingsList 
+              bookings={bookings} 
+              filter={activeTab} 
+              isStudent={isStudent}
+              onStatusChange={loadBookings}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

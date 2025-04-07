@@ -1,143 +1,247 @@
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useProfile } from "@/hooks/use-profile";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserBookings, getTutorSubjects, getTutorAvailability } from "@/lib/api";
+import { Calendar, Clock, BookOpen, Users, DollarSign, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Search, Calendar, MessageSquare, Star, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { format } from "date-fns";
+import { Booking, TutorSubject, Availability } from "@/types/database.types";
+
+const DashboardCard = ({
+  title,
+  value,
+  description,
+  icon: Icon,
+}: {
+  title: string;
+  value: string | number;
+  description?: string;
+  icon: any;
+}) => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <Icon className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{value}</div>
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+    </CardContent>
+  </Card>
+);
 
 const Dashboard = () => {
-  // Mock data - in a real app this would come from an API
-  const stats = [
-    { 
-      label: "Upcoming Sessions", 
-      value: 3, 
-      icon: Calendar, 
-      color: "bg-blue-100 text-blue-700",
-      link: "/bookings"
-    },
-    { 
-      label: "New Messages", 
-      value: 5, 
-      icon: MessageSquare, 
-      color: "bg-green-100 text-green-700",
-      link: "/messages"
-    },
-    { 
-      label: "Subjects", 
-      value: 4, 
-      icon: Search, 
-      color: "bg-purple-100 text-purple-700",
-      link: "/profile"
-    },
-    { 
-      label: "Rating", 
-      value: "4.8", 
-      icon: Star, 
-      color: "bg-amber-100 text-amber-700",
-      link: "/profile"
-    }
-  ];
+  const { user } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [subjects, setSubjects] = useState<TutorSubject[]>([]);
+  const [availability, setAvailability] = useState<Availability[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Recent activities - would be from an API
-  const activities = [
-    {
-      type: "booking",
-      title: "Math Session Confirmed",
-      description: "Your session with John Doe on April 10 is confirmed",
-      time: "2 hours ago"
-    },
-    {
-      type: "message",
-      title: "New Message",
-      description: "Sarah Smith sent you a message about your Chemistry tutoring",
-      time: "5 hours ago"
-    },
-    {
-      type: "review",
-      title: "New Review",
-      description: "You received a 5-star review from Michael Brown",
-      time: "Yesterday"
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user || !profile) return;
+
+      try {
+        setLoading(true);
+        const userBookings = await getUserBookings(user.id);
+        setBookings(userBookings);
+
+        if (profile.role === 'tutor') {
+          const [tutorSubjects, tutorAvailability] = await Promise.all([
+            getTutorSubjects(user.id),
+            getTutorAvailability(user.id),
+          ]);
+          setSubjects(tutorSubjects);
+          setAvailability(tutorAvailability);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (profile) {
+      loadData();
     }
-  ];
+  }, [user, profile]);
+
+  const upcomingBookings = bookings.filter(b => 
+    (b.status === 'confirmed' || b.status === 'requested') && 
+    new Date(b.start_time) > new Date()
+  );
+  
+  const completedBookings = bookings.filter(b => b.status === 'completed');
+  
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  const isStudent = profile?.role === 'student';
+
+  if (profileLoading) {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  if (!profile) {
+    return (
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        <p>Please complete your profile to see your dashboard.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <Button asChild>
-          <Link to="/search">Find Tutors</Link>
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
-          <Card key={index} className="shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
-                  <h3 className="text-2xl font-bold mt-1">{stat.value}</h3>
-                </div>
-                <div className={`p-2 rounded-full ${stat.color}`}>
-                  <stat.icon className="h-5 w-5" />
-                </div>
-              </div>
-              <div className="mt-4">
-                <Button variant="ghost" asChild className="p-0 h-auto text-primary hover:text-primary/80">
-                  <Link to={stat.link}>View details →</Link>
-                </Button>
-              </div>
+    <div className="container mx-auto py-8">
+      <div className="flex flex-col md:flex-row gap-6 mb-8">
+        <div className="md:w-1/3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile</CardTitle>
+              <CardDescription>Your account information</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center text-center">
+              <Avatar className="h-24 w-24 mb-4">
+                <AvatarImage src={profile.avatar_url || ""} alt={profile.name} />
+                <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
+              </Avatar>
+              <h3 className="text-xl font-bold mb-1">{profile.name}</h3>
+              <p className="text-muted-foreground capitalize mb-4">{profile.role}</p>
+              {profile.role === 'tutor' && (
+                <p className="font-semibold text-xl text-primary">${profile.hourly_rate}/hr</p>
+              )}
+              {profile.bio && (
+                <p className="mt-4 text-sm">{profile.bio}</p>
+              )}
+              <Button className="mt-6" asChild>
+                <a href="/profile">Edit Profile</a>
+              </Button>
             </CardContent>
           </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="col-span-1 md:col-span-2 shadow-sm">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your latest interactions on the platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {activities.map((activity, index) => (
-                <div key={index} className="border-b last:border-b-0 pb-4 last:pb-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">{activity.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{activity.description}</p>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{activity.time}</span>
+        </div>
+        
+        <div className="md:w-2/3">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            <DashboardCard
+              title="Upcoming Sessions"
+              value={upcomingBookings.length}
+              description="Sessions scheduled for the future"
+              icon={Calendar}
+            />
+            <DashboardCard
+              title="Completed Sessions"
+              value={completedBookings.length}
+              description="Total completed tutoring sessions"
+              icon={Clock}
+            />
+            {isStudent ? (
+              <DashboardCard
+                title="Total Tutors"
+                value={Array.from(new Set(completedBookings.map(b => b.tutor_id))).length}
+                description="Different tutors you've worked with"
+                icon={Users}
+              />
+            ) : (
+              <DashboardCard
+                title="Subjects Offered"
+                value={subjects.length}
+                description="Number of subjects you teach"
+                icon={BookOpen}
+              />
+            )}
+          </div>
+          
+          <div className="mt-6">
+            <Tabs defaultValue="upcoming">
+              <TabsList className="mb-4">
+                <TabsTrigger value="upcoming">Upcoming Sessions</TabsTrigger>
+                <TabsTrigger value="past">Past Sessions</TabsTrigger>
+              </TabsList>
+              <TabsContent value="upcoming">
+                {upcomingBookings.length > 0 ? (
+                  <div className="space-y-4">
+                    {upcomingBookings.map((booking) => (
+                      <Card key={booking.id}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-semibold">
+                                {isStudent ? `Session with Tutor` : `Student Session`}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy')} • {' '}
+                                {format(new Date(booking.start_time), 'h:mm a')} - {format(new Date(booking.end_time), 'h:mm a')}
+                              </p>
+                              <p className="text-sm mt-1">
+                                Status: <span className="font-medium capitalize">{booking.status}</span>
+                              </p>
+                            </div>
+                            <Button asChild size="sm">
+                              <a href="/bookings">View</a>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm">
-          <CardHeader>
-            <CardTitle>Recommended Tutors</CardTitle>
-            <CardDescription>Based on your interests</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3].map((_, index) => (
-                <div key={index} className="flex items-center gap-3 border-b last:border-b-0 pb-4 last:pb-0">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-muted-foreground mb-4">No upcoming sessions</p>
+                      {isStudent && (
+                        <Button asChild>
+                          <a href="/search">Find a Tutor</a>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+              <TabsContent value="past">
+                {completedBookings.length > 0 ? (
+                  <div className="space-y-4">
+                    {completedBookings.slice(0, 5).map((booking) => (
+                      <Card key={booking.id}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-semibold">
+                                {isStudent ? `Session with Tutor` : `Student Session`}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy')} • {' '}
+                                {format(new Date(booking.start_time), 'h:mm a')} - {format(new Date(booking.end_time), 'h:mm a')}
+                              </p>
+                            </div>
+                            <Button variant="outline" asChild size="sm">
+                              <a href="/bookings">View</a>
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
-                  <div>
-                    <h4 className="font-medium">Alex Johnson</h4>
-                    <p className="text-xs text-muted-foreground">Physics, Math • $40/hr</p>
-                  </div>
-                </div>
-              ))}
-              <Button variant="outline" className="w-full" asChild>
-                <Link to="/search">View All Tutors</Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-muted-foreground">No past sessions</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );

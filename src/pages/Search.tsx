@@ -1,270 +1,259 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Star, MapPin, Video } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Star, MapPin, Clock, Calendar } from "lucide-react";
+import { getSubjects, searchTutors, getTutorReviews } from "@/lib/api";
+import type { Subject, Profile, Review } from "@/types/database.types";
+import { useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Mock data - would come from API
-const tutors = [
-  {
-    id: 1,
-    name: "Dr. Maria Chen",
-    subjects: ["Physics", "Math"],
-    rating: 4.9,
-    hourlyRate: 45,
-    location: "Boston, MA",
-    online: true,
-    inPerson: true,
-    avatar: "",
-    bio: "PhD in Physics with 10+ years of teaching experience. Specialized in making complex concepts easy to understand.",
-    reviews: 48
-  },
-  {
-    id: 2,
-    name: "James Wilson",
-    subjects: ["English", "Literature"],
-    rating: 4.7,
-    hourlyRate: 35,
-    location: "Chicago, IL",
-    online: true,
-    inPerson: false,
-    avatar: "",
-    bio: "English Literature professor with expertise in essay writing, critical analysis, and creative writing.",
-    reviews: 32
-  },
-  {
-    id: 3,
-    name: "Sarah Johnson",
-    subjects: ["Chemistry", "Biology"],
-    rating: 4.8,
-    hourlyRate: 40,
-    location: "New York, NY",
-    online: true,
-    inPerson: true,
-    avatar: "",
-    bio: "Molecular biologist passionate about making science accessible. Experience with AP and IB curricula.",
-    reviews: 56
-  },
-  {
-    id: 4,
-    name: "Robert Davis",
-    subjects: ["Math", "Computer Science"],
-    rating: 4.6,
-    hourlyRate: 50,
-    location: "San Francisco, CA",
-    online: true,
-    inPerson: true,
-    avatar: "",
-    bio: "Software engineer with teaching background. Expert in algorithms, programming, and math fundamentals.",
-    reviews: 29
-  }
-];
+const TutorCard = ({ tutor }: { tutor: Profile }) => {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-const Search = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 100]);
-  const [modeFilter, setModeFilter] = useState("all");
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const tutorReviews = await getTutorReviews(tutor.id);
+        setReviews(tutorReviews);
+      } catch (error) {
+        console.error("Error loading reviews:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Filter tutors based on search and filters
-  const filteredTutors = tutors.filter(tutor => {
-    const matchesSearch = 
-      tutor.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      tutor.subjects.some(subject => 
-        subject.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    
-    const matchesPrice = 
-      tutor.hourlyRate >= priceRange[0] && 
-      tutor.hourlyRate <= priceRange[1];
-    
-    const matchesMode = 
-      modeFilter === "all" || 
-      (modeFilter === "online" && tutor.online) || 
-      (modeFilter === "inPerson" && tutor.inPerson);
-    
-    return matchesSearch && matchesPrice && matchesMode;
-  });
+    loadReviews();
+  }, [tutor.id]);
+
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    : 0;
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Find a Tutor</h1>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2">
+        <div className="flex items-center space-x-4">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={tutor.avatar_url || ""} alt={tutor.name} />
+            <AvatarFallback>{getInitials(tutor.name)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <CardTitle>{tutor.name}</CardTitle>
+            {tutor.location && (
+              <CardDescription className="flex items-center">
+                <MapPin className="h-3.5 w-3.5 mr-1" />
+                {tutor.location}
+              </CardDescription>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            {loading ? (
+              <Skeleton className="h-4 w-24" />
+            ) : (
+              <>
+                <div className="flex mr-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`h-4 w-4 ${
+                        star <= Math.round(averageRating)
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm text-gray-500">
+                  {reviews.length > 0
+                    ? `${averageRating.toFixed(1)} (${reviews.length})`
+                    : "No reviews yet"}
+                </span>
+              </>
+            )}
+          </div>
+          <div className="text-lg font-bold text-primary">
+            ${tutor.hourly_rate}/hr
+          </div>
+        </div>
+        <p className="text-sm line-clamp-2">{tutor.bio || "No bio available"}</p>
+      </CardContent>
+      <CardFooter>
+        <Button 
+          onClick={() => navigate(`/tutor/${tutor.id}`)} 
+          variant="default" 
+          className="w-full"
+        >
+          View Profile
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+
+const Search = () => {
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
+  const [tutors, setTutors] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [subjectsLoading, setSubjectsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSubjects = async () => {
+      try {
+        const allSubjects = await getSubjects();
+        setSubjects(allSubjects);
+      } catch (error) {
+        console.error("Error loading subjects:", error);
+      } finally {
+        setSubjectsLoading(false);
+      }
+    };
+
+    loadSubjects();
+  }, []);
+
+  useEffect(() => {
+    const searchForTutors = async () => {
+      if (!selectedSubject && !location) return;
       
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Filters sidebar */}
+      setLoading(true);
+      try {
+        const results = await searchTutors(
+          selectedSubject || undefined,
+          location || undefined
+        );
+        setTutors(results);
+      } catch (error) {
+        console.error("Error searching for tutors:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    searchForTutors();
+  }, [selectedSubject, location]);
+
+  return (
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Find a Tutor</h1>
+      
+      <div className="grid gap-6 md:grid-cols-[300px_1fr]">
         <div className="space-y-6">
           <Card>
-            <CardContent className="p-4 space-y-4">
-              <h3 className="font-medium">Filters</h3>
-              
+            <CardHeader>
+              <CardTitle>Filter Tutors</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Subject</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Subjects</SelectItem>
-                    <SelectItem value="math">Mathematics</SelectItem>
-                    <SelectItem value="english">English</SelectItem>
-                    <SelectItem value="science">Science</SelectItem>
-                    <SelectItem value="history">History</SelectItem>
-                    <SelectItem value="language">Languages</SelectItem>
-                    <SelectItem value="programming">Programming</SelectItem>
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Subject</label>
+                {subjectsLoading ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={selectedSubject}
+                    onValueChange={setSelectedSubject}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Subjects" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Subjects</SelectItem>
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               
               <div className="space-y-2">
-                <Label>Hourly Rate</Label>
-                <div className="pt-2">
-                  <Slider 
-                    defaultValue={[0, 100]} 
-                    max={100} 
-                    step={5}
-                    onValueChange={setPriceRange}
-                  />
-                  <div className="flex justify-between mt-2 text-sm">
-                    <span>${priceRange[0]}</span>
-                    <span>${priceRange[1]}</span>
-                  </div>
-                </div>
+                <label className="text-sm font-medium">Location</label>
+                <Input
+                  placeholder="Enter city or country"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
               </div>
               
-              <div className="space-y-2">
-                <Label>Mode</Label>
-                <div className="grid grid-cols-1 gap-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="online" checked={modeFilter === "all" || modeFilter === "online"} onCheckedChange={() => setModeFilter(modeFilter === "online" ? "all" : "online")} />
-                    <Label htmlFor="online" className="font-normal">Online</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="inperson" checked={modeFilter === "all" || modeFilter === "inPerson"} onCheckedChange={() => setModeFilter(modeFilter === "inPerson" ? "all" : "inPerson")} />
-                    <Label htmlFor="inperson" className="font-normal">In-Person</Label>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Availability</Label>
-                <Select defaultValue="all">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Any time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any time</SelectItem>
-                    <SelectItem value="weekday">Weekdays</SelectItem>
-                    <SelectItem value="weekend">Weekends</SelectItem>
-                    <SelectItem value="evening">Evenings</SelectItem>
-                    <SelectItem value="morning">Mornings</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Location</Label>
-                <Input placeholder="Enter a location" />
-              </div>
-              
-              <Button className="w-full">Apply Filters</Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setSelectedSubject("");
+                  setLocation("");
+                }}
+              >
+                Clear Filters
+              </Button>
             </CardContent>
           </Card>
         </div>
         
-        {/* Search results */}
-        <div className="md:col-span-3 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-            <Input
-              placeholder="Search by subject or tutor name..."
-              className="max-w-md"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            
-            <Tabs defaultValue="grid" className="w-auto">
-              <TabsList>
-                <TabsTrigger value="grid">Grid</TabsTrigger>
-                <TabsTrigger value="list">List</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredTutors.length > 0 ? (
-              filteredTutors.map((tutor) => (
-                <Card key={tutor.id} className="shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex gap-4">
-                      <Avatar className="h-14 w-14">
-                        <AvatarImage src={tutor.avatar} />
-                        <AvatarFallback>{tutor.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-medium">{tutor.name}</h3>
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
-                            <span className="text-sm">{tutor.rating}</span>
-                            <span className="text-xs text-muted-foreground ml-1">({tutor.reviews})</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {tutor.subjects.map((subject, idx) => (
-                            <Badge key={idx} variant="secondary">{subject}</Badge>
-                          ))}
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                          {tutor.bio}
-                        </p>
-                        
-                        <div className="flex flex-wrap items-center gap-3 mt-3 text-sm">
-                          <div className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {tutor.location}
-                          </div>
-                          
-                          {tutor.online && (
-                            <div className="flex items-center text-green-600">
-                              <Video className="h-3 w-3 mr-1" />
-                              Online
-                            </div>
-                          )}
-                          
-                          <div className="font-medium text-primary ml-auto">
-                            ${tutor.hourlyRate}/hr
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4">
-                          <Button className="w-full">View Profile</Button>
-                        </div>
+        <div className="space-y-6">
+          {loading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div>
+                        <Skeleton className="h-5 w-24 mb-1" />
+                        <Skeleton className="h-4 w-32" />
                       </div>
                     </div>
+                  </CardHeader>
+                  <CardContent className="pb-2">
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-3/4" />
+                  </CardContent>
+                  <CardFooter>
+                    <Skeleton className="h-9 w-full" />
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <>
+              {tutors.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {tutors.map((tutor) => (
+                    <TutorCard key={tutor.id} tutor={tutor} />
+                  ))}
+                </div>
+              ) : (
+                <Card className="bg-muted/50">
+                  <CardContent className="py-8 text-center">
+                    <p className="text-lg mb-2">No tutors found</p>
+                    <p className="text-muted-foreground">
+                      Try changing your search criteria
+                    </p>
                   </CardContent>
                 </Card>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <h3 className="text-lg font-medium">No tutors found</h3>
-                <p className="text-muted-foreground mt-1">Try adjusting your filters</p>
-              </div>
-            )}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
