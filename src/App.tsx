@@ -17,15 +17,27 @@ import Bookings from "./pages/Bookings";
 import Messages from "./pages/Messages";
 import Layout from "./components/Layout";
 import { useAuth } from "./contexts/AuthContext";
+import { Suspense, lazy } from "react";
+import { FullPageLoader } from "./components/ui/loading-states";
+import ErrorBoundary from "./components/ErrorBoundary";
 
-const queryClient = new QueryClient();
+// Configure the query client with retry and error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
 
-// Protected route component
+// Protected route component with loading state
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, loading } = useAuth();
   
   if (loading) {
-    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+    return <FullPageLoader />;
   }
   
   if (!isAuthenticated) {
@@ -36,34 +48,56 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <AuthRedirect />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            <Route element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/bookings" element={<Bookings />} />
-              <Route path="/messages" element={<Messages />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <AuthRedirect />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              <Route element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                <Route path="/dashboard" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <Dashboard />
+                  </Suspense>
+                } />
+                <Route path="/profile" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <Profile />
+                  </Suspense>
+                } />
+                <Route path="/search" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <Search />
+                  </Suspense>
+                } />
+                <Route path="/bookings" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <Bookings />
+                  </Suspense>
+                } />
+                <Route path="/messages" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <Messages />
+                  </Suspense>
+                } />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
