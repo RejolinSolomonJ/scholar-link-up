@@ -74,6 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       console.log("Attempting to sign up...");
+      
+      // Validate role to ensure it matches database constraints
+      if (role !== 'student' && role !== 'tutor') {
+        throw new Error('Role must be either "student" or "tutor"');
+      }
+      
       // Create auth user
       const { error: signUpError, data } = await supabase.auth.signUp({ 
         email, 

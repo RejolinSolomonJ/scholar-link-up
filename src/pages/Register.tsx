@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { AlertCircle } from "lucide-react";
 const Register = () => {
   const [searchParams] = useSearchParams();
   const defaultRole = searchParams.get("role") || "";
+  const navigate = useNavigate();
   
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,14 +29,17 @@ const Register = () => {
     setError("");
     setLoading(true);
 
-    if (!role) {
-      setError("Please select a role");
+    // Validate role is one of the valid options to match database constraint
+    if (!role || (role !== 'student' && role !== 'tutor')) {
+      setError("Please select a valid role (student or tutor)");
       setLoading(false);
       return;
     }
 
     try {
       await signUp(email, password, name, role);
+      // After successful registration, navigate to auth-redirect to handle proper redirection
+      navigate('/auth-redirect');
     } catch (err: any) {
       setError(err.message || "Failed to create account");
     } finally {
@@ -99,7 +103,7 @@ const Register = () => {
                   <Label htmlFor="student" className="font-normal cursor-pointer">Student looking for a tutor</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="teacher" id="teacher" />
+                  <RadioGroupItem value="tutor" id="tutor" />
                   <Label htmlFor="teacher" className="font-normal cursor-pointer">Teacher offering tutoring services</Label>
                 </div>
               </RadioGroup>

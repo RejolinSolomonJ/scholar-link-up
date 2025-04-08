@@ -21,10 +21,16 @@ const AuthRedirect = () => {
             // Redirect based on role
             if (profile.role === 'student') {
               navigate('/search');
-            } else {
+              toast.success(`Welcome back, ${profile.name}!`);
+            } else if (profile.role === 'tutor') {
               navigate('/dashboard');
+              toast.success(`Welcome back, ${profile.name}!`);
+            } else {
+              // If role is invalid, redirect to profile page
+              console.log("Invalid role, redirecting to profile page");
+              navigate('/profile');
+              toast.info('Please complete your profile');
             }
-            toast.success(`Welcome back, ${profile.name}!`);
           } else {
             console.log("No profile found, redirecting to profile page");
             // If no profile exists, redirect to complete profile
