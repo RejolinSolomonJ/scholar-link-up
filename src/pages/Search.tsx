@@ -176,7 +176,7 @@ const Search = () => {
                       <SelectValue placeholder="All Subjects" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Subjects</SelectItem>
+                      <SelectItem value="all-subjects">All Subjects</SelectItem>
                       {subjects.map((subject) => (
                         <SelectItem key={subject.id} value={subject.id}>
                           {subject.name}
