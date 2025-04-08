@@ -1,5 +1,5 @@
 
-import { supabase } from './supabase';
+import { supabase } from '@/integrations/supabase/client';
 import type { 
   Profile, Subject, TutorSubject, Availability, 
   Booking, Review, Message, Conversation, 
