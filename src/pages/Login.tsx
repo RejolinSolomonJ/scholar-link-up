@@ -25,7 +25,8 @@ const Login = () => {
 
     try {
       await signIn(email, password);
-      // Let the AuthRedirect component handle the navigation based on role
+      // After successful login, navigate to auth-redirect which will handle proper redirection
+      navigate('/auth-redirect');
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {
