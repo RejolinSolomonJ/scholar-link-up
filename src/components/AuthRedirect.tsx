@@ -30,12 +30,17 @@ const AuthRedirect = () => {
           }
         } catch (error) {
           console.error('Error fetching profile:', error);
-          toast.error('Something went wrong. Please try again.');
+          // Default to dashboard on error rather than crashing
+          navigate('/dashboard');
+          toast.error('Something went wrong, but we redirected you to the dashboard');
         }
+      } else if (!loading && !isAuthenticated) {
+        // Redirect to login if not authenticated and not loading
+        navigate('/login');
       }
     };
 
-    if (!loading && isAuthenticated) {
+    if (!loading) {
       redirectBasedOnRole();
     }
   }, [isAuthenticated, loading, user, navigate]);

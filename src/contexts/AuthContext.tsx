@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { Session, User } from '@supabase/supabase-js'
-import { supabase } from '@/integrations/supabase/client'
+import { supabase } from '@/lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -25,35 +25,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    const initializeAuth = async () => {
+      setLoading(true);
+      try {
+        // Get initial session
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-    })
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) throw error
-      toast.success('Signed in successfully!')
-      navigate('/dashboard')
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success('Signed in successfully!');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in')
-      throw error
+      toast.error(error.message || 'Failed to sign in');
+      throw error;
+    } finally {
+      setLoading(false);
     }
   }
 
   const signUp = async (email: string, password: string, name: string, role: string) => {
     try {
+      setLoading(true);
       // Create auth user
       const { error: signUpError, data } = await supabase.auth.signUp({ 
         email, 
@@ -64,25 +77,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role
           }
         }
-      })
+      });
       
-      if (signUpError) throw signUpError
+      if (signUpError) throw signUpError;
       
-      toast.success('Account created successfully!')
-      navigate('/dashboard')
+      toast.success('Account created successfully!');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create account')
-      throw error
+      toast.error(error.message || 'Failed to create account');
+      throw error;
+    } finally {
+      setLoading(false);
     }
   }
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut()
-      toast.success('Signed out successfully')
-      navigate('/')
+      setLoading(true);
+      await supabase.auth.signOut();
+      toast.success('Signed out successfully');
+      navigate('/');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign out')
+      toast.error(error.message || 'Failed to sign out');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -104,9 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
+  return context;
 }
