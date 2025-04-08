@@ -5,6 +5,10 @@ import type {
   Booking, Review, Message, Conversation, 
   BookingStatus, BookingMode 
 } from '@/types/database.types';
+import { Database } from '@/integrations/supabase/types';
+
+// Type the tables to use with the Supabase client
+type Tables = Database['public']['Tables'];
 
 // Profile APIs
 export const getProfile = async (userId: string): Promise<Profile | null> => {
@@ -19,7 +23,7 @@ export const getProfile = async (userId: string): Promise<Profile | null> => {
     return null;
   }
   
-  return data;
+  return data as Profile | null;
 };
 
 export const updateProfile = async (userId: string, profile: Partial<Profile>): Promise<Profile | null> => {
@@ -35,7 +39,7 @@ export const updateProfile = async (userId: string, profile: Partial<Profile>): 
     return null;
   }
   
-  return data;
+  return data as Profile | null;
 };
 
 // Subject APIs
@@ -50,7 +54,7 @@ export const getSubjects = async (): Promise<Subject[]> => {
     return [];
   }
   
-  return data || [];
+  return data as Subject[] || [];
 };
 
 export const getSubject = async (subjectId: string): Promise<Subject | null> => {
@@ -65,7 +69,7 @@ export const getSubject = async (subjectId: string): Promise<Subject | null> => 
     return null;
   }
   
-  return data;
+  return data as Subject | null;
 };
 
 // Tutor Subject APIs
@@ -80,13 +84,13 @@ export const getTutorSubjects = async (tutorId: string): Promise<TutorSubject[]>
     return [];
   }
   
-  return data || [];
+  return data as unknown as TutorSubject[] || [];
 };
 
 export const addTutorSubject = async (tutorSubject: Omit<TutorSubject, 'id' | 'created_at'>): Promise<TutorSubject | null> => {
   const { data, error } = await supabase
     .from('tutor_subjects')
-    .insert(tutorSubject)
+    .insert(tutorSubject as any)
     .select()
     .single();
   
@@ -95,7 +99,7 @@ export const addTutorSubject = async (tutorSubject: Omit<TutorSubject, 'id' | 'c
     return null;
   }
   
-  return data;
+  return data as TutorSubject | null;
 };
 
 export const removeTutorSubject = async (tutorId: string, subjectId: string): Promise<boolean> => {
@@ -127,13 +131,13 @@ export const getTutorAvailability = async (tutorId: string): Promise<Availabilit
     return [];
   }
   
-  return data || [];
+  return data as Availability[] || [];
 };
 
 export const addAvailability = async (availability: Omit<Availability, 'id' | 'created_at' | 'updated_at'>): Promise<Availability | null> => {
   const { data, error } = await supabase
     .from('availability')
-    .insert(availability)
+    .insert(availability as any)
     .select()
     .single();
   
@@ -142,13 +146,13 @@ export const addAvailability = async (availability: Omit<Availability, 'id' | 'c
     return null;
   }
   
-  return data;
+  return data as Availability | null;
 };
 
 export const updateAvailability = async (availabilityId: string, availability: Partial<Availability>): Promise<Availability | null> => {
   const { data, error } = await supabase
     .from('availability')
-    .update(availability)
+    .update(availability as any)
     .eq('id', availabilityId)
     .select()
     .single();
@@ -158,7 +162,7 @@ export const updateAvailability = async (availabilityId: string, availability: P
     return null;
   }
   
-  return data;
+  return data as Availability | null;
 };
 
 export const deleteAvailability = async (availabilityId: string): Promise<boolean> => {
@@ -179,7 +183,7 @@ export const deleteAvailability = async (availabilityId: string): Promise<boolea
 export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' | 'updated_at'>): Promise<Booking | null> => {
   const { data, error } = await supabase
     .from('bookings')
-    .insert(booking)
+    .insert(booking as any)
     .select()
     .single();
   
@@ -188,7 +192,7 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
     return null;
   }
   
-  return data;
+  return data as Booking | null;
 };
 
 export const getBooking = async (bookingId: string): Promise<Booking | null> => {
@@ -203,7 +207,7 @@ export const getBooking = async (bookingId: string): Promise<Booking | null> => 
     return null;
   }
   
-  return data;
+  return data as Booking | null;
 };
 
 export const getUserBookings = async (userId: string): Promise<Booking[]> => {
@@ -218,13 +222,13 @@ export const getUserBookings = async (userId: string): Promise<Booking[]> => {
     return [];
   }
   
-  return data || [];
+  return data as unknown as Booking[] || [];
 };
 
 export const updateBookingStatus = async (bookingId: string, status: BookingStatus): Promise<Booking | null> => {
   const { data, error } = await supabase
     .from('bookings')
-    .update({ status })
+    .update({ status } as any)
     .eq('id', bookingId)
     .select()
     .single();
@@ -234,14 +238,14 @@ export const updateBookingStatus = async (bookingId: string, status: BookingStat
     return null;
   }
   
-  return data;
+  return data as Booking | null;
 };
 
 // Review APIs
 export const createReview = async (review: Omit<Review, 'id' | 'created_at'>): Promise<Review | null> => {
   const { data, error } = await supabase
     .from('reviews')
-    .insert(review)
+    .insert(review as any)
     .select()
     .single();
   
@@ -250,7 +254,7 @@ export const createReview = async (review: Omit<Review, 'id' | 'created_at'>): P
     return null;
   }
   
-  return data;
+  return data as Review | null;
 };
 
 export const getTutorReviews = async (tutorId: string): Promise<Review[]> => {
@@ -265,7 +269,7 @@ export const getTutorReviews = async (tutorId: string): Promise<Review[]> => {
     return [];
   }
   
-  return data || [];
+  return data as unknown as Review[] || [];
 };
 
 // Messaging APIs
@@ -281,7 +285,7 @@ export const getConversations = async (userId: string): Promise<Conversation[]> 
     return [];
   }
   
-  return data || [];
+  return data as unknown as Conversation[] || [];
 };
 
 export const getOrCreateConversation = async (studentId: string, tutorId: string): Promise<Conversation | null> => {
@@ -294,13 +298,13 @@ export const getOrCreateConversation = async (studentId: string, tutorId: string
     .single();
   
   if (!fetchError && existingConversation) {
-    return existingConversation;
+    return existingConversation as Conversation;
   }
   
   // Create new conversation
   const { data: newConversation, error: createError } = await supabase
     .from('conversations')
-    .insert({ student_id: studentId, tutor_id: tutorId })
+    .insert({ student_id: studentId, tutor_id: tutorId } as any)
     .select()
     .single();
   
@@ -309,7 +313,7 @@ export const getOrCreateConversation = async (studentId: string, tutorId: string
     return null;
   }
   
-  return newConversation;
+  return newConversation as Conversation | null;
 };
 
 export const getMessages = async (conversationId: string): Promise<Message[]> => {
@@ -324,13 +328,13 @@ export const getMessages = async (conversationId: string): Promise<Message[]> =>
     return [];
   }
   
-  return data || [];
+  return data as unknown as Message[] || [];
 };
 
 export const sendMessage = async (message: Omit<Message, 'id' | 'created_at' | 'is_read'>): Promise<Message | null> => {
   const { data, error } = await supabase
     .from('messages')
-    .insert({ ...message, is_read: false })
+    .insert({ ...message, is_read: false } as any)
     .select()
     .single();
   
@@ -339,13 +343,13 @@ export const sendMessage = async (message: Omit<Message, 'id' | 'created_at' | '
     return null;
   }
   
-  return data;
+  return data as Message | null;
 };
 
 export const markMessagesAsRead = async (conversationId: string, userId: string): Promise<boolean> => {
   const { error } = await supabase
     .from('messages')
-    .update({ is_read: true })
+    .update({ is_read: true } as any)
     .eq('conversation_id', conversationId)
     .eq('recipient_id', userId);
   
@@ -380,9 +384,9 @@ export const searchTutors = async (subjectId?: string, location?: string): Promi
   }
   
   // Remove duplicates (can happen when joining with tutor_subjects)
-  const uniqueTutors = Array.from(new Map(data.map(tutor => [tutor.id, tutor])).values());
+  const uniqueTutors = Array.from(new Map(data.map((tutor: any) => [tutor.id, tutor])).values());
   
-  return uniqueTutors;
+  return uniqueTutors as Profile[];
 };
 
 // Get profile data including related records
