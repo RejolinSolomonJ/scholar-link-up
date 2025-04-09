@@ -5,6 +5,7 @@ import type {
   BookingStatus, BookingMode, Course, CourseLevel, CourseEnrollment
 } from '@/types/database.types';
 import { Database } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 // Type the tables to use with the Supabase client
 type Tables = Database['public']['Tables'];
@@ -544,25 +545,99 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
 
 // Course enrollment APIs
 export const enrollInCourse = async (courseId: string, studentId: string): Promise<CourseEnrollment | null> => {
-  const { data, error } = await supabase
-    .from('course_enrollments')
-    .insert({
-      course_id: courseId,
-      student_id: studentId,
-      status: 'active'
-    } as any)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error('Error enrolling in course:', error);
+  try {
+    // First get the course details to identify the tutor
+    const { data: courseData, error: courseError } = await supabase
+      .from('courses')
+      .select('*, profiles(*)')
+      .eq('id', courseId)
+      .single();
+    
+    if (courseError) {
+      console.error('Error fetching course:', courseError);
+      return null;
+    }
+    
+    // Create the enrollment
+    const { data, error } = await supabase
+      .from('course_enrollments')
+      .insert({
+        course_id: courseId,
+        student_id: studentId,
+        status: 'active'
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error enrolling in course:', error);
+      return null;
+    }
+    
+    // Get student name for the notification
+    const { data: studentData, error: studentError } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', studentId)
+      .single();
+    
+    if (studentError) {
+      console.error('Error fetching student data:', studentError);
+    } else {
+      // Create a notification message for the tutor
+      await createEnrollmentNotification(
+        courseId, 
+        studentId, 
+        courseData.tutor_id, 
+        studentData.name, 
+        courseData.title
+      );
+    }
+    
+    // Update course current_students count
+    await updateCourseEnrollmentCount(courseId);
+    
+    toast.success('Successfully enrolled in the course');
+    
+    return data as unknown as CourseEnrollment;
+  } catch (error) {
+    console.error('Error in enrollInCourse:', error);
+    toast.error('Failed to enroll in the course');
     return null;
   }
-  
-  // Update course current_students count
-  await updateCourseEnrollmentCount(courseId);
-  
-  return data as unknown as CourseEnrollment;
+};
+
+// Helper function to create a notification message for course enrollment
+const createEnrollmentNotification = async (
+  courseId: string,
+  studentId: string,
+  tutorId: string,
+  studentName: string,
+  courseTitle: string
+) => {
+  try {
+    // First check if a conversation exists between the student and tutor
+    let conversation = await getOrCreateConversation(studentId, tutorId);
+    
+    if (!conversation) {
+      console.error('Could not create conversation for enrollment notification');
+      return;
+    }
+    
+    // Create a notification message
+    const message = {
+      conversation_id: conversation.id,
+      sender_id: studentId,
+      recipient_id: tutorId,
+      content: `I've enrolled in your course "${courseTitle}". Looking forward to learning with you!`,
+    };
+    
+    await sendMessage(message);
+    
+    console.log('Enrollment notification sent to tutor');
+  } catch (error) {
+    console.error('Error creating enrollment notification:', error);
+  }
 };
 
 export const getStudentEnrollments = async (studentId: string): Promise<CourseEnrollment[]> => {

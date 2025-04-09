@@ -1,162 +1,174 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { getTutorCourses } from "@/lib/api";
+
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/hooks/use-profile";
+import { getAllCourses, enrollInCourse, getStudentEnrollments, getTutorCourses } from "@/lib/api";
+import { Course, CourseEnrollment } from "@/types/database.types";
+import { LoadingSpinner, ErrorDisplay } from "@/components/ui/loading-states";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { BookOpen, Plus, Pencil, Users, Clock } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
-import type { Course } from "@/types/database.types";
+import { Link } from "react-router-dom";
+import { PlusCircle } from "lucide-react";
+import CourseCard from "@/components/CourseCard";
+import { toast } from "sonner";
 
 const MyCourses = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("all");
-  
-  const { data: courses = [], isLoading, isError } = useQuery({
-    queryKey: ['courses', user?.id],
-    queryFn: () => user ? getTutorCourses(user.id) : Promise.resolve([]),
-    enabled: !!user,
-  });
-  
-  // Map course level to a badge color
-  const getLevelBadgeColor = (level: string) => {
-    switch (level) {
-      case 'beginner':
-        return 'bg-green-100 text-green-800 hover:bg-green-100';
-      case 'intermediate':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
-      case 'advanced':
-        return 'bg-purple-100 text-purple-800 hover:bg-purple-100';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
+  const { profile, loading: profileLoading } = useProfile();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user || !profile) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        if (profile.role === 'tutor') {
+          const tutorCourses = await getTutorCourses(user.id);
+          setCourses(tutorCourses);
+        } else if (profile.role === 'student') {
+          const [studentEnrollments, allCourses] = await Promise.all([
+            getStudentEnrollments(user.id),
+            getAllCourses()
+          ]);
+          
+          setEnrollments(studentEnrollments);
+          
+          // Get all courses
+          setCourses(allCourses);
+        }
+      } catch (error) {
+        console.error('Error loading courses data:', error);
+        setError('Failed to load courses. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (profile) {
+      loadData();
+    }
+  }, [user, profile]);
+
+  const handleEnroll = async (courseId: string) => {
+    if (!user) return;
+    
+    const enrollment = await enrollInCourse(courseId, user.id);
+    if (enrollment) {
+      // Reload the enrollments to reflect the changes
+      const updatedEnrollments = await getStudentEnrollments(user.id);
+      setEnrollments(updatedEnrollments);
     }
   };
-  
-  // Render loading skeletons
-  if (isLoading) {
+
+  if (profileLoading || loading) {
     return (
-      <div className="container py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">My Courses</h1>
-          <Skeleton className="h-10 w-32" />
-        </div>
-        
-        <Skeleton className="h-10 w-64 mb-6" />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-64 w-full" />
-          ))}
-        </div>
+      <div className="container mx-auto py-8">
+        <LoadingSpinner className="py-12" />
       </div>
     );
   }
-  
-  // Handle error state
-  if (isError) {
+
+  if (error) {
     return (
-      <div className="container py-6">
-        <h1 className="text-3xl font-bold mb-6">My Courses</h1>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10">
-            <p className="text-lg text-muted-foreground mb-4">
-              There was an error loading your courses.
-            </p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="container mx-auto py-8">
+        <ErrorDisplay 
+          message={error} 
+          retry={() => window.location.reload()} 
+        />
       </div>
     );
   }
+
+  const isStudent = profile?.role === 'student';
+  const isTutor = profile?.role === 'tutor';
   
-  // Handle empty state
-  if (courses.length === 0) {
-    return (
-      <div className="container py-6">
-        <h1 className="text-3xl font-bold mb-6">My Courses</h1>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10">
-            <BookOpen className="h-16 w-16 text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No courses yet</h2>
-            <p className="text-muted-foreground mb-6">
-              Create your first course to start teaching students.
-            </p>
-            <Button asChild>
-              <Link to="/create-course">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Course
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Get enrolled course IDs for the student
+  const enrolledCourseIds = enrollments.map(enrollment => enrollment.course_id);
   
+  // Filter available courses (those the student is not enrolled in yet)
+  const availableCourses = isStudent 
+    ? courses.filter(course => !enrolledCourseIds.includes(course.id))
+    : courses;
+
+  // Get enrolled courses details
+  const enrolledCourses = isStudent
+    ? courses.filter(course => enrolledCourseIds.includes(course.id))
+    : [];
+
   return (
-    <div className="container py-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-3xl font-bold">My Courses</h1>
-        <Button asChild>
-          <Link to="/create-course">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Course
-          </Link>
-        </Button>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">
+          {isTutor ? "My Courses" : "Available Courses"}
+        </h1>
+        {isTutor && (
+          <Button asChild>
+            <Link to="/create-course">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Course
+            </Link>
+          </Button>
+        )}
       </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList>
-          <TabsTrigger value="all">All Courses</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="draft">Drafts</TabsTrigger>
-        </TabsList>
-      </Tabs>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((course) => (
-          <Card key={course.id} className="overflow-hidden flex flex-col">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <Badge variant="outline" className={cn(getLevelBadgeColor(course.level))}>
-                  {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
-                </Badge>
-                <Badge variant="outline">${course.price}</Badge>
-              </div>
-              <CardTitle className="text-xl mt-2">{course.title}</CardTitle>
-              <CardDescription className="line-clamp-2">
-                {course.description}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-2 flex-grow">
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Clock className="mr-2 h-4 w-4" />
-                  <span>{course.duration_weeks} weeks</span>
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Users className="mr-2 h-4 w-4" />
-                  <span>{course.current_students || 0} / {course.max_students} students</span>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="pt-2">
-              <Button variant="outline" asChild className="w-full">
-                <Link to={`/courses/${course.id}`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit Course
-                </Link>
+
+      {isTutor && (
+        <>
+          {courses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {courses.map(course => (
+                <CourseCard key={course.id} course={course} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">You haven't created any courses yet.</p>
+              <Button asChild>
+                <Link to="/create-course">Create Your First Course</Link>
               </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {isStudent && (
+        <>
+          {enrolledCourses.length > 0 && (
+            <>
+              <h2 className="text-xl font-semibold mt-8 mb-4">My Enrolled Courses</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {enrolledCourses.map(course => (
+                  <CourseCard key={course.id} course={course} />
+                ))}
+              </div>
+            </>
+          )}
+
+          <h2 className="text-xl font-semibold mt-8 mb-4">Available Courses</h2>
+          {availableCourses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {availableCourses.map(course => (
+                <div key={course.id} className="relative">
+                  <CourseCard course={course} />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 hover:opacity-100 transition-opacity">
+                    <Button onClick={() => handleEnroll(course.id)}>
+                      Enroll Now
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No available courses at the moment.</p>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,9 @@ import { useAuth } from "./contexts/AuthContext";
 import { Suspense, lazy } from "react";
 import { FullPageLoader } from "./components/ui/loading-states";
 import ErrorBoundary from "./components/ErrorBoundary";
+
+// Lazy load CourseDetail component
+const CourseDetail = lazy(() => import("./pages/CourseDetail"));
 
 // Configure the query client with retry and error handling
 const queryClient = new QueryClient({
@@ -108,6 +110,11 @@ const App = () => (
                 <Route path="/courses" element={
                   <Suspense fallback={<FullPageLoader />}>
                     <MyCourses />
+                  </Suspense>
+                } />
+                <Route path="/courses/:courseId" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <CourseDetail />
                   </Suspense>
                 } />
               </Route>

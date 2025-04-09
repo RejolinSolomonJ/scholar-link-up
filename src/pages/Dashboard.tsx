@@ -3,16 +3,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfile } from "@/hooks/use-profile";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserBookings, getTutorSubjects, getTutorAvailability, getAllCourses } from "@/lib/api";
+import { getUserBookings, getTutorSubjects, getTutorAvailability, getAllCourses, getStudentEnrollments } from "@/lib/api";
 import { Calendar, Clock, BookOpen, Users, DollarSign, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Booking, TutorSubject, Availability, Course } from "@/types/database.types";
+import { Booking, TutorSubject, Availability, Course, CourseEnrollment } from "@/types/database.types";
 import { LoadingSpinner, ErrorDisplay } from "@/components/ui/loading-states";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const DashboardCard = ({
   title,
@@ -57,6 +58,7 @@ const Dashboard = () => {
   const [subjects, setSubjects] = useState<TutorSubject[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +80,9 @@ const Dashboard = () => {
           ]);
           setSubjects(tutorSubjects);
           setAvailability(tutorAvailability);
+        } else if (profile.role === 'student') {
+          const studentEnrollments = await getStudentEnrollments(user.id);
+          setEnrollments(studentEnrollments);
         }
         
         const allCourses = await getAllCourses();
@@ -112,8 +117,10 @@ const Dashboard = () => {
 
   const isStudent = profile?.role === 'student';
   
-  const relevantCourses = isStudent 
-    ? courses
+  const enrolledCourseIds = enrollments.map(enrollment => enrollment.course_id);
+  
+  const availableCourses = isStudent 
+    ? courses.filter(course => !enrolledCourseIds.includes(course.id))
     : courses.filter(course => course.tutor_id === user?.id);
 
   if (profileLoading || loading) {
@@ -207,9 +214,9 @@ const Dashboard = () => {
           {isStudent && (
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Available Courses</h2>
-              {relevantCourses.length > 0 ? (
+              {availableCourses.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {relevantCourses.slice(0, 4).map((course) => (
+                  {availableCourses.slice(0, 4).map((course) => (
                     <Card key={course.id} className="overflow-hidden flex flex-col">
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
@@ -256,7 +263,7 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               )}
-              {relevantCourses.length > 4 && (
+              {availableCourses.length > 4 && (
                 <div className="flex justify-center mt-4">
                   <Button variant="outline" asChild>
                     <Link to="/courses">View All Courses</Link>
