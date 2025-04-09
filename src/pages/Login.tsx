@@ -24,10 +24,13 @@ const Login = () => {
     setLoading(true);
 
     try {
+      console.log("Attempting to sign in with:", email);
       await signIn(email, password);
+      console.log("Sign in successful, navigating to auth-redirect");
       // After successful login, navigate to auth-redirect which will handle proper redirection
-      navigate('/auth-redirect');
+      navigate('/auth-redirect', { replace: true });
     } catch (err: any) {
+      console.error("Login error:", err);
       setError(err.message || "Failed to sign in");
     } finally {
       setLoading(false);

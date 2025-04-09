@@ -20,33 +20,35 @@ const AuthRedirect = () => {
             console.log("Profile found:", profile);
             // Redirect based on role
             if (profile.role === 'student') {
-              navigate('/search');
+              console.log("Redirecting to /search as student");
+              navigate('/search', { replace: true });
               toast.success(`Welcome back, ${profile.name}!`);
             } else if (profile.role === 'tutor') {
-              navigate('/dashboard');
+              console.log("Redirecting to /dashboard as tutor");
+              navigate('/dashboard', { replace: true });
               toast.success(`Welcome back, ${profile.name}!`);
             } else {
               // If role is invalid, redirect to profile page
               console.log("Invalid role, redirecting to profile page");
-              navigate('/profile');
+              navigate('/profile', { replace: true });
               toast.info('Please complete your profile');
             }
           } else {
             console.log("No profile found, redirecting to profile page");
             // If no profile exists, redirect to complete profile
-            navigate('/profile');
+            navigate('/profile', { replace: true });
             toast.info('Please complete your profile');
           }
         } catch (error) {
           console.error('Error fetching profile:', error);
           // Default to dashboard on error rather than crashing
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
           toast.error('Something went wrong, but we redirected you to the dashboard');
         }
       } else if (!loading && !isAuthenticated) {
         // Redirect to login if not authenticated and not loading
         console.log("Not authenticated, redirecting to login");
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     };
 
@@ -56,7 +58,12 @@ const AuthRedirect = () => {
     }
   }, [isAuthenticated, loading, user, navigate]);
 
-  return null;
+  // Show a loading state while redirection is happening
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-lg">Redirecting...</p>
+    </div>
+  );
 };
 
 export default AuthRedirect;
