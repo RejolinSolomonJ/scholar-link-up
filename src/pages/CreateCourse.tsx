@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -14,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getSubjects, createCourse } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
+import type { CourseLevel } from "@/types/database.types";
 
 // Course form schema with validation
 const courseSchema = z.object({
@@ -66,7 +66,7 @@ const CreateCourse = () => {
         description: values.description,
         subject_id: values.subject_id,
         duration_weeks: values.duration_weeks,
-        level: values.level as "beginner" | "intermediate" | "advanced",
+        level: values.level as CourseLevel,
         price: values.price,
         max_students: values.max_students,
       };

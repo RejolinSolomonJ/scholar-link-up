@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getTutorCourses, type Course } from "@/lib/api";
+import { getTutorCourses } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { BookOpen, Plus, Pencil, Users, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import type { Course } from "@/types/database.types";
 
 const MyCourses = () => {
   const { user } = useAuth();

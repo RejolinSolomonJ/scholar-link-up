@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { 
   Profile, Subject, TutorSubject, Availability, 
@@ -457,7 +456,7 @@ export const subscribeToBookingUpdates = (userId: string, callback: (booking: Bo
 export const createCourse = async (course: Omit<Course, 'id' | 'created_at' | 'updated_at' | 'current_students'>): Promise<Course | null> => {
   const { data, error } = await supabase
     .from('courses')
-    .insert(course)
+    .insert(course as any)
     .select()
     .single();
   
@@ -516,7 +515,7 @@ export const getAllCourses = async (): Promise<Course[]> => {
 export const updateCourse = async (courseId: string, course: Partial<Course>): Promise<Course | null> => {
   const { data, error } = await supabase
     .from('courses')
-    .update(course)
+    .update(course as any)
     .eq('id', courseId)
     .select()
     .single();
@@ -551,7 +550,7 @@ export const enrollInCourse = async (courseId: string, studentId: string): Promi
       course_id: courseId,
       student_id: studentId,
       status: 'active'
-    })
+    } as any)
     .select()
     .single();
   
@@ -602,7 +601,7 @@ export const updateEnrollmentStatus = async (
 ): Promise<CourseEnrollment | null> => {
   const { data, error } = await supabase
     .from('course_enrollments')
-    .update({ status })
+    .update({ status } as any)
     .eq('id', enrollmentId)
     .select()
     .single();
@@ -638,7 +637,7 @@ const updateCourseEnrollmentCount = async (courseId: string): Promise<void> => {
   // Update the course with the new count
   const { error: updateError } = await supabase
     .from('courses')
-    .update({ current_students: count || 0 })
+    .update({ current_students: count || 0 } as any)
     .eq('id', courseId);
     
   if (updateError) {
