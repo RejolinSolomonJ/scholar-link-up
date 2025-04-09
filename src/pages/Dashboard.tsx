@@ -1,15 +1,18 @@
-
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfile } from "@/hooks/use-profile";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserBookings, getTutorSubjects, getTutorAvailability } from "@/lib/api";
+import { getUserBookings, getTutorSubjects, getTutorAvailability, getAllCourses } from "@/lib/api";
 import { Calendar, Clock, BookOpen, Users, DollarSign, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
-import { Booking, TutorSubject, Availability } from "@/types/database.types";
+import { Badge } from "@/components/ui/badge";
+import { Booking, TutorSubject, Availability, Course } from "@/types/database.types";
+import { LoadingSpinner, ErrorDisplay } from "@/components/ui/loading-states";
+import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const DashboardCard = ({
   title,
@@ -34,13 +37,28 @@ const DashboardCard = ({
   </Card>
 );
 
+const getLevelBadgeColor = (level: string) => {
+  switch (level) {
+    case 'beginner':
+      return 'bg-green-100 text-green-800 hover:bg-green-100';
+    case 'intermediate':
+      return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
+    case 'advanced':
+      return 'bg-purple-100 text-purple-800 hover:bg-purple-100';
+    default:
+      return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
+  }
+};
+
 const Dashboard = () => {
   const { user } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [subjects, setSubjects] = useState<TutorSubject[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,6 +66,8 @@ const Dashboard = () => {
 
       try {
         setLoading(true);
+        setError(null);
+        
         const userBookings = await getUserBookings(user.id);
         setBookings(userBookings);
 
@@ -59,8 +79,12 @@ const Dashboard = () => {
           setSubjects(tutorSubjects);
           setAvailability(tutorAvailability);
         }
+        
+        const allCourses = await getAllCourses();
+        setCourses(allCourses);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        setError('Failed to load dashboard data. Please try again later.');
       } finally {
         setLoading(false);
       }
@@ -87,9 +111,28 @@ const Dashboard = () => {
   };
 
   const isStudent = profile?.role === 'student';
+  
+  const relevantCourses = isStudent 
+    ? courses
+    : courses.filter(course => course.tutor_id === user?.id);
 
-  if (profileLoading) {
-    return <div className="p-4">Loading...</div>;
+  if (profileLoading || loading) {
+    return (
+      <div className="container mx-auto py-8">
+        <LoadingSpinner className="py-12" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <ErrorDisplay 
+          message={error} 
+          retry={() => window.location.reload()} 
+        />
+      </div>
+    );
   }
 
   if (!profile) {
@@ -131,7 +174,7 @@ const Dashboard = () => {
         </div>
         
         <div className="md:w-2/3">
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-6">
             <DashboardCard
               title="Upcoming Sessions"
               value={upcomingBookings.length}
@@ -160,8 +203,70 @@ const Dashboard = () => {
               />
             )}
           </div>
+
+          {isStudent && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-4">Available Courses</h2>
+              {relevantCourses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {relevantCourses.slice(0, 4).map((course) => (
+                    <Card key={course.id} className="overflow-hidden flex flex-col">
+                      <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                          <Badge variant="outline" className={cn(getLevelBadgeColor(course.level))}>
+                            {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
+                          </Badge>
+                          <Badge variant="outline">${course.price}</Badge>
+                        </div>
+                        <CardTitle className="text-xl mt-2">{course.title}</CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {course.description}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pb-2 flex-grow">
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Clock className="mr-2 h-4 w-4" />
+                            <span>{course.duration_weeks} weeks</span>
+                          </div>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <Users className="mr-2 h-4 w-4" />
+                            <span>{course.current_students || 0} / {course.max_students} students</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-2">
+                        <Button variant="outline" asChild className="w-full">
+                          <Link to={`/courses/${course.id}`}>
+                            View Course
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">No courses currently available</p>
+                    <Button asChild>
+                      <Link to="/search">Find a Tutor</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+              {relevantCourses.length > 4 && (
+                <div className="flex justify-center mt-4">
+                  <Button variant="outline" asChild>
+                    <Link to="/courses">View All Courses</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
           
-          <div className="mt-6">
+          <div className="mt-2">
             <Tabs defaultValue="upcoming">
               <TabsList className="mb-4">
                 <TabsTrigger value="upcoming">Upcoming Sessions</TabsTrigger>
