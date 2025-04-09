@@ -15,6 +15,10 @@ import Profile from "./pages/Profile";
 import Search from "./pages/Search";
 import Bookings from "./pages/Bookings";
 import Messages from "./pages/Messages";
+import Settings from "./pages/Settings";
+import AboutUs from "./pages/AboutUs";
+import CreateCourse from "./pages/CreateCourse";
+import MyCourses from "./pages/MyCourses";
 import Layout from "./components/Layout";
 import { useAuth } from "./contexts/AuthContext";
 import { Suspense, lazy } from "react";
@@ -60,6 +64,7 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/auth-redirect" element={<AuthRedirect />} />
+              <Route path="/about" element={<AboutUs />} />
               <Route element={
                 <ProtectedRoute>
                   <Layout />
@@ -88,6 +93,21 @@ const App = () => (
                 <Route path="/messages" element={
                   <Suspense fallback={<FullPageLoader />}>
                     <Messages />
+                  </Suspense>
+                } />
+                <Route path="/settings" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <Settings />
+                  </Suspense>
+                } />
+                <Route path="/create-course" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <CreateCourse />
+                  </Suspense>
+                } />
+                <Route path="/courses" element={
+                  <Suspense fallback={<FullPageLoader />}>
+                    <MyCourses />
                   </Suspense>
                 } />
               </Route>
