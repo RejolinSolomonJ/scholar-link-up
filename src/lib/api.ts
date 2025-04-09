@@ -1,8 +1,9 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { 
   Profile, Subject, TutorSubject, Availability, 
   Booking, Review, Message, Conversation, 
-  BookingStatus, BookingMode 
+  BookingStatus, BookingMode, Course, CourseLevel, CourseEnrollment
 } from '@/types/database.types';
 import { Database } from '@/integrations/supabase/types';
 
@@ -453,25 +454,10 @@ export const subscribeToBookingUpdates = (userId: string, callback: (booking: Bo
 };
 
 // Course APIs
-export type Course = {
-  id: string;
-  tutor_id: string;
-  title: string;
-  description: string;
-  subject_id: string;
-  duration_weeks: number;
-  level: 'beginner' | 'intermediate' | 'advanced';
-  price: number;
-  max_students: number;
-  current_students?: number;
-  created_at: string;
-  updated_at: string;
-};
-
 export const createCourse = async (course: Omit<Course, 'id' | 'created_at' | 'updated_at' | 'current_students'>): Promise<Course | null> => {
   const { data, error } = await supabase
     .from('courses')
-    .insert(course as any)
+    .insert(course)
     .select()
     .single();
   
@@ -480,7 +466,7 @@ export const createCourse = async (course: Omit<Course, 'id' | 'created_at' | 'u
     return null;
   }
   
-  return data as Course | null;
+  return data as unknown as Course;
 };
 
 export const getCourse = async (courseId: string): Promise<Course | null> => {
@@ -495,7 +481,7 @@ export const getCourse = async (courseId: string): Promise<Course | null> => {
     return null;
   }
   
-  return data as Course | null;
+  return data as unknown as Course;
 };
 
 export const getTutorCourses = async (tutorId: string): Promise<Course[]> => {
@@ -510,7 +496,7 @@ export const getTutorCourses = async (tutorId: string): Promise<Course[]> => {
     return [];
   }
   
-  return data as unknown as Course[] || [];
+  return data as unknown as Course[];
 };
 
 export const getAllCourses = async (): Promise<Course[]> => {
@@ -524,13 +510,13 @@ export const getAllCourses = async (): Promise<Course[]> => {
     return [];
   }
   
-  return data as unknown as Course[] || [];
+  return data as unknown as Course[];
 };
 
 export const updateCourse = async (courseId: string, course: Partial<Course>): Promise<Course | null> => {
   const { data, error } = await supabase
     .from('courses')
-    .update(course as any)
+    .update(course)
     .eq('id', courseId)
     .select()
     .single();
@@ -540,7 +526,7 @@ export const updateCourse = async (courseId: string, course: Partial<Course>): P
     return null;
   }
   
-  return data as Course | null;
+  return data as unknown as Course;
 };
 
 export const deleteCourse = async (courseId: string): Promise<boolean> => {
@@ -555,4 +541,107 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
   }
   
   return true;
+};
+
+// Course enrollment APIs
+export const enrollInCourse = async (courseId: string, studentId: string): Promise<CourseEnrollment | null> => {
+  const { data, error } = await supabase
+    .from('course_enrollments')
+    .insert({
+      course_id: courseId,
+      student_id: studentId,
+      status: 'active'
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('Error enrolling in course:', error);
+    return null;
+  }
+  
+  // Update course current_students count
+  await updateCourseEnrollmentCount(courseId);
+  
+  return data as unknown as CourseEnrollment;
+};
+
+export const getStudentEnrollments = async (studentId: string): Promise<CourseEnrollment[]> => {
+  const { data, error } = await supabase
+    .from('course_enrollments')
+    .select('*, courses(*)')
+    .eq('student_id', studentId)
+    .order('enrollment_date', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching student enrollments:', error);
+    return [];
+  }
+  
+  return data as unknown as CourseEnrollment[];
+};
+
+export const getCourseEnrollments = async (courseId: string): Promise<CourseEnrollment[]> => {
+  const { data, error } = await supabase
+    .from('course_enrollments')
+    .select('*, profiles!course_enrollments_student_id_fkey(*)')
+    .eq('course_id', courseId)
+    .order('enrollment_date', { ascending: false });
+  
+  if (error) {
+    console.error('Error fetching course enrollments:', error);
+    return [];
+  }
+  
+  return data as unknown as CourseEnrollment[];
+};
+
+export const updateEnrollmentStatus = async (
+  enrollmentId: string, 
+  status: 'active' | 'completed' | 'dropped'
+): Promise<CourseEnrollment | null> => {
+  const { data, error } = await supabase
+    .from('course_enrollments')
+    .update({ status })
+    .eq('id', enrollmentId)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error('Error updating enrollment status:', error);
+    return null;
+  }
+  
+  // If dropping, update the course enrollment count
+  if (status === 'dropped') {
+    const courseId = (data as any).course_id;
+    await updateCourseEnrollmentCount(courseId);
+  }
+  
+  return data as unknown as CourseEnrollment;
+};
+
+// Helper function to update course enrollment count
+const updateCourseEnrollmentCount = async (courseId: string): Promise<void> => {
+  // Count active enrollments for this course
+  const { count, error: countError } = await supabase
+    .from('course_enrollments')
+    .select('*', { count: 'exact', head: true })
+    .eq('course_id', courseId)
+    .eq('status', 'active');
+    
+  if (countError) {
+    console.error('Error counting enrollments:', countError);
+    return;
+  }
+  
+  // Update the course with the new count
+  const { error: updateError } = await supabase
+    .from('courses')
+    .update({ current_students: count || 0 })
+    .eq('id', courseId);
+    
+  if (updateError) {
+    console.error('Error updating course enrollment count:', updateError);
+  }
 };

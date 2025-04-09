@@ -59,15 +59,23 @@ const CreateCourse = () => {
 
     setLoading(true);
     try {
-      // Create the course in the database
-      const result = await createCourse({
-        ...values,
+      // Create the course in the database with all required fields
+      const courseData = {
         tutor_id: user.id,
-      });
+        title: values.title,
+        description: values.description,
+        subject_id: values.subject_id,
+        duration_weeks: values.duration_weeks,
+        level: values.level as "beginner" | "intermediate" | "advanced",
+        price: values.price,
+        max_students: values.max_students,
+      };
+      
+      const result = await createCourse(courseData);
 
       if (result) {
         toast.success("Course created successfully!");
-        navigate("/dashboard");
+        navigate("/courses");
       } else {
         toast.error("Failed to create course");
       }

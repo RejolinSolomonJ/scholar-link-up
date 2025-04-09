@@ -84,3 +84,29 @@ export type Conversation = {
   created_at: string;
   updated_at: string;
 };
+
+export type CourseLevel = 'beginner' | 'intermediate' | 'advanced';
+export type EnrollmentStatus = 'active' | 'completed' | 'dropped';
+
+export type Course = {
+  id: string;
+  tutor_id: string;
+  title: string;
+  description: string;
+  subject_id: string;
+  duration_weeks: number;
+  level: CourseLevel;
+  price: number;
+  max_students: number;
+  current_students?: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CourseEnrollment = {
+  id: string;
+  course_id: string;
+  student_id: string;
+  enrollment_date: string;
+  status: EnrollmentStatus;
+};

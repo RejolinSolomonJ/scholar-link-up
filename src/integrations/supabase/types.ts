@@ -162,6 +162,105 @@ export type Database = {
           },
         ]
       }
+      course_enrollments: {
+        Row: {
+          course_id: string
+          enrollment_date: string
+          id: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          course_id: string
+          enrollment_date?: string
+          id?: string
+          status: string
+          student_id: string
+        }
+        Update: {
+          course_id?: string
+          enrollment_date?: string
+          id?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          created_at: string
+          current_students: number | null
+          description: string
+          duration_weeks: number
+          id: string
+          level: string
+          max_students: number
+          price: number
+          subject_id: string | null
+          title: string
+          tutor_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_students?: number | null
+          description: string
+          duration_weeks: number
+          id?: string
+          level: string
+          max_students: number
+          price: number
+          subject_id?: string | null
+          title: string
+          tutor_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_students?: number | null
+          description?: string
+          duration_weeks?: number
+          id?: string
+          level?: string
+          max_students?: number
+          price?: number
+          subject_id?: string | null
+          title?: string
+          tutor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
