@@ -88,9 +88,14 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      // Get the current origin - this ensures we don't hardcode localhost or any specific domain
+      // Get the current window location origin
       const origin = window.location.origin;
-      const resetUrl = `${origin}/reset-password`;
+      
+      // Get the current pathname and remove '/login' if it's there
+      let redirectPath = '/reset-password';
+      
+      // Combine to create the full reset URL
+      const resetUrl = `${origin}${redirectPath}`;
       
       console.log("Sending reset password email with redirect URL:", resetUrl);
       

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -56,14 +57,17 @@ const ResetPassword = () => {
       try {
         setTokenCheckLoading(true);
         
+        // Try to extract token from both the hash and URL fragments
         const hash = location.hash;
         const query = location.search;
+        console.log("Current URL path:", location.pathname);
         console.log("URL hash:", hash);
         console.log("URL query:", query);
         
         let accessToken = null;
         let type = null;
         
+        // Check hash first (modern format)
         if (hash && hash.length > 1) {
           const params = new URLSearchParams(hash.substring(1));
           accessToken = params.get("access_token");
@@ -71,6 +75,7 @@ const ResetPassword = () => {
           console.log("Extracted from hash - token:", accessToken ? "exists" : "none", "type:", type);
         }
         
+        // If not found in hash, check query params
         if (!accessToken && query && query.length > 1) {
           const params = new URLSearchParams(query);
           accessToken = params.get("access_token");
