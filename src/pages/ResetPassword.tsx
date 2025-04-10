@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -41,6 +41,7 @@ const ResetPassword = () => {
   const [validToken, setValidToken] = useState(false);
   const [tokenCheckLoading, setTokenCheckLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const form = useForm<z.infer<typeof resetPasswordFormSchema>>({
     resolver: zodResolver(resetPasswordFormSchema),
@@ -55,8 +56,8 @@ const ResetPassword = () => {
       try {
         setTokenCheckLoading(true);
         
-        const hash = window.location.hash;
-        const query = window.location.search;
+        const hash = location.hash;
+        const query = location.search;
         console.log("URL hash:", hash);
         console.log("URL query:", query);
         
@@ -107,7 +108,7 @@ const ResetPassword = () => {
     };
     
     checkRecoveryToken();
-  }, []);
+  }, [location]);
 
   const handleSubmit = async (values: z.infer<typeof resetPasswordFormSchema>) => {
     setError("");

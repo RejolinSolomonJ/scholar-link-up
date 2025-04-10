@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -87,8 +88,9 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      const baseUrl = window.location.origin;
-      const resetUrl = `${baseUrl}/reset-password`;
+      // Get the current origin - this ensures we don't hardcode localhost or any specific domain
+      const origin = window.location.origin;
+      const resetUrl = `${origin}/reset-password`;
       
       console.log("Sending reset password email with redirect URL:", resetUrl);
       

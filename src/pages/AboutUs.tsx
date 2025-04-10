@@ -1,120 +1,100 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const AboutUs = () => {
   return (
-    <div className="container max-w-4xl py-6">
-      <Card className="mb-8">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold">About Scholar LinkUp</CardTitle>
-          <CardDescription className="text-lg">
-            Connecting students and tutors for better learning experiences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <p className="text-muted-foreground">
-            Scholar LinkUp was founded with a simple mission: to make quality education accessible to everyone by connecting students with passionate tutors. 
-            Our platform makes it easy for students to find the right tutor for their specific needs, and for tutors to share their expertise with eager learners.
-          </p>
+    <div className="container mx-auto py-12 px-4">
+      <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">About Scholar LinkUp</h1>
+      
+      <div className="max-w-4xl mx-auto mb-12">
+        <p className="text-center text-muted-foreground mb-8">
+          Scholar LinkUp is a platform dedicated to connecting students with expert tutors to help them achieve their educational goals.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Our Mission</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Our mission is to make quality education accessible to everyone by providing a platform where students can connect with qualified tutors who can help them succeed in their academic journey.
+              </p>
+            </CardContent>
+          </Card>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
-            <div>
-              <h3 className="text-xl font-semibold mb-3">Our Mission</h3>
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Our Vision</CardTitle>
+            </CardHeader>
+            <CardContent>
               <p className="text-muted-foreground">
-                We believe that personalized learning can transform lives. By matching students with the right tutors, we help learners overcome challenges, 
-                develop confidence, and achieve their academic goals. Our platform makes it easier than ever to find, schedule, and manage tutoring sessions.
+                We envision a world where every student has access to personalized educational support, regardless of their location or background. We believe that with the right guidance, anyone can achieve academic excellence.
               </p>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-semibold mb-3">Our Vision</h3>
-              <p className="text-muted-foreground">
-                We envision a world where everyone has access to the educational support they need to succeed. We're building a community where knowledge is shared, 
-                learning is celebrated, and both students and tutors can thrive together.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <h2 className="text-2xl font-bold mb-6">Our Values</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        <Card>
-          <CardHeader>
-            <CardTitle>Excellence</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              We're committed to excellence in education, technology, and customer service. We continuously strive to improve our platform based on feedback from our community.
-            </p>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Accessibility</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              We believe education should be accessible to everyone, regardless of background or location. Our platform connects students with tutors across different subjects and skill levels.
-            </p>
-          </CardContent>
-        </Card>
+        <h2 className="text-2xl font-bold mb-6 text-center">Our Team</h2>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Community</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              We foster a supportive community where students and tutors can connect, collaborate, and grow together. We celebrate diversity and different learning styles.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <h2 className="text-2xl font-bold mb-6">Our Team</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {/* This section can be filled with actual team information later */}
-        <Card className="text-center">
-          <CardContent className="pt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center">
             <Avatar className="h-24 w-24 mx-auto mb-4">
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <h3 className="font-semibold text-lg">Jane Doe</h3>
-            <p className="text-sm text-muted-foreground mb-2">CEO & Founder</p>
-            <p className="text-sm text-muted-foreground">
-              Former educator passionate about making education accessible to everyone.
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="text-center">
-          <CardContent className="pt-6">
-            <Avatar className="h-24 w-24 mx-auto mb-4">
+              <AvatarImage src="/placeholder.svg" alt="Dr. Jane Smith" />
               <AvatarFallback>JS</AvatarFallback>
             </Avatar>
-            <h3 className="font-semibold text-lg">John Smith</h3>
-            <p className="text-sm text-muted-foreground mb-2">CTO</p>
-            <p className="text-sm text-muted-foreground">
-              Tech enthusiast with a background in education technology.
-            </p>
-          </CardContent>
-        </Card>
-        
-        <Card className="text-center">
-          <CardContent className="pt-6">
+            <h3 className="font-bold text-lg">Dr. Jane Smith</h3>
+            <p className="text-primary">Founder & CEO</p>
+            <p className="text-muted-foreground mt-2">Former university professor with over 15 years of experience in education.</p>
+          </div>
+          
+          <div className="text-center">
             <Avatar className="h-24 w-24 mx-auto mb-4">
-              <AvatarFallback>MP</AvatarFallback>
+              <AvatarImage src="/placeholder.svg" alt="Michael Chen" />
+              <AvatarFallback>MC</AvatarFallback>
             </Avatar>
-            <h3 className="font-semibold text-lg">Maria Park</h3>
-            <p className="text-sm text-muted-foreground mb-2">Head of Education</p>
-            <p className="text-sm text-muted-foreground">
-              Experienced educator dedicated to improving teaching methods.
-            </p>
-          </CardContent>
-        </Card>
+            <h3 className="font-bold text-lg">Michael Chen</h3>
+            <p className="text-primary">CTO</p>
+            <p className="text-muted-foreground mt-2">Tech innovator with a passion for creating tools that enhance learning experiences.</p>
+          </div>
+          
+          <div className="text-center">
+            <Avatar className="h-24 w-24 mx-auto mb-4">
+              <AvatarImage src="/placeholder.svg" alt="Sarah Johnson" />
+              <AvatarFallback>SJ</AvatarFallback>
+            </Avatar>
+            <h3 className="font-bold text-lg">Sarah Johnson</h3>
+            <p className="text-primary">Head of Education</p>
+            <p className="text-muted-foreground mt-2">Curriculum expert dedicated to maintaining high-quality educational standards.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="bg-muted p-8 rounded-lg max-w-4xl mx-auto">
+        <h2 className="text-2xl font-bold mb-6 text-center">Our Values</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-card p-6 rounded-lg border">
+            <h3 className="font-bold text-lg mb-2">Excellence</h3>
+            <p className="text-muted-foreground">We strive for excellence in all aspects of our service, from tutor selection to platform usability.</p>
+          </div>
+          
+          <div className="bg-card p-6 rounded-lg border">
+            <h3 className="font-bold text-lg mb-2">Accessibility</h3>
+            <p className="text-muted-foreground">We believe quality education should be accessible to everyone, regardless of location or background.</p>
+          </div>
+          
+          <div className="bg-card p-6 rounded-lg border">
+            <h3 className="font-bold text-lg mb-2">Innovation</h3>
+            <p className="text-muted-foreground">We continuously innovate to improve the learning experience for both students and tutors.</p>
+          </div>
+          
+          <div className="bg-card p-6 rounded-lg border">
+            <h3 className="font-bold text-lg mb-2">Community</h3>
+            <p className="text-muted-foreground">We foster a supportive community where knowledge sharing and growth are encouraged.</p>
+          </div>
+        </div>
       </div>
     </div>
   );
