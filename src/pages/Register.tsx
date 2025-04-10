@@ -1,43 +1,70 @@
 
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Info } from "lucide-react";
+
+// Define password validation schema
+const passwordSchema = z.string().min(6).max(8)
+  .refine(
+    (password) => /[A-Z]/.test(password),
+    { message: "Password must include at least one uppercase letter" }
+  )
+  .refine(
+    (password) => /[a-z]/.test(password),
+    { message: "Password must include at least one lowercase letter" }
+  )
+  .refine(
+    (password) => /[!@#$%^&*]/.test(password),
+    { message: "Password must include at least one special character (!@#$%^&*)" }
+  );
+
+// Define form schema
+const registerFormSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: passwordSchema,
+  role: z.enum(["student", "tutor"], {
+    required_error: "Please select a role",
+  }),
+});
 
 const Register = () => {
   const [searchParams] = useSearchParams();
   const defaultRole = searchParams.get("role") || "";
   const navigate = useNavigate();
   
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<string>(defaultRole);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   
   const { signUp } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<z.infer<typeof registerFormSchema>>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: defaultRole === "tutor" ? "tutor" : defaultRole === "student" ? "student" : undefined,
+    },
+  });
+
+  const handleSubmit = async (values: z.infer<typeof registerFormSchema>) => {
     setError("");
     setLoading(true);
 
-    // Validate role is one of the valid options to match database constraint
-    if (!role || (role !== 'student' && role !== 'tutor')) {
-      setError("Please select a valid role (student or tutor)");
-      setLoading(false);
-      return;
-    }
-
     try {
-      await signUp(email, password, name, role);
+      await signUp(values.email, values.password, values.name, values.role);
       // After successful registration, navigate to auth-redirect to handle proper redirection
       navigate('/auth-redirect');
     } catch (err: any) {
@@ -63,55 +90,104 @@ const Register = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name" 
-                placeholder="John Doe" 
-                required 
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="John Doe" 
+                        required 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="john@example.com" 
-                required 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+              
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email" 
+                        placeholder="john@example.com" 
+                        required 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        required 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      <div className="mt-2 text-xs flex items-start">
+                        <Info className="h-3.5 w-3.5 mr-1 flex-shrink-0 text-muted-foreground mt-0.5" />
+                        <span>
+                          Password must be 6-8 characters, include at least one uppercase letter, 
+                          one lowercase letter, and one special character.
+                        </span>
+                      </div>
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>I am a:</Label>
-              <RadioGroup defaultValue={role} onValueChange={setRole} className="flex flex-col gap-2">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="student" id="student" />
-                  <Label htmlFor="student" className="font-normal cursor-pointer">Student looking for a tutor</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="tutor" id="tutor" />
-                  <Label htmlFor="teacher" className="font-normal cursor-pointer">Teacher offering tutoring services</Label>
-                </div>
-              </RadioGroup>
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
+              
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel>I am a:</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col gap-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="student" id="student" />
+                          <Label htmlFor="student" className="font-normal cursor-pointer">Student looking for a tutor</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="tutor" id="tutor" />
+                          <Label htmlFor="tutor" className="font-normal cursor-pointer">Teacher offering tutoring services</Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </form>
+          </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <div className="text-center text-sm text-muted-foreground">

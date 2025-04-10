@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Star, MapPin, Clock, Calendar, RefreshCw, AlertTriangle } from "lucide-react";
 import { getSubjects, searchTutors, getTutorReviews } from "@/lib/api";
-import type { Subject, Profile, Review } from "@/types/database.types";
+import type { Subject, Profile, Review, Course } from "@/types/database.types";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -132,17 +131,99 @@ const TutorCard = ({ tutor }: { tutor: Profile }) => {
   );
 };
 
+const CourseCard = ({ course }: { course: Course }) => {
+  const navigate = useNavigate();
+  
+  const getLevelColor = (level: string) => {
+    switch(level) {
+      case 'beginner': return 'bg-green-100 text-green-800';
+      case 'intermediate': return 'bg-blue-100 text-blue-800';
+      case 'advanced': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  return (
+    <ErrorBoundary
+      fallback={
+        <Card className="overflow-hidden border-red-200 bg-red-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-red-600">Error loading course</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">This course card could not be displayed properly.</p>
+          </CardContent>
+        </Card>
+      }
+    >
+      <Card className="overflow-hidden hover:shadow-md transition-shadow">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <CardTitle className="text-lg">{course.title}</CardTitle>
+            <Badge className={getLevelColor(course.level)}>
+              {course.level.charAt(0).toUpperCase() + course.level.slice(1)}
+            </Badge>
+          </div>
+          <CardDescription className="line-clamp-2">
+            {course.description}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-2">
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="flex flex-col items-center justify-center p-2 bg-muted rounded-lg">
+              <Clock className="h-4 w-4 mb-1 text-primary" />
+              <span className="text-xs font-medium">{course.duration_weeks} Weeks</span>
+            </div>
+            <div className="flex flex-col items-center justify-center p-2 bg-muted rounded-lg">
+              <Users className="h-4 w-4 mb-1 text-primary" />
+              <span className="text-xs font-medium">{course.current_students || 0} / {course.max_students}</span>
+            </div>
+            <div className="flex flex-col items-center justify-center p-2 bg-muted rounded-lg">
+              <div className="text-lg font-bold text-primary">
+                ${course.price}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3 mb-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={course.profiles?.avatar_url || ""} alt={course.profiles?.name} />
+              <AvatarFallback>
+                {course.profiles?.name?.charAt(0).toUpperCase() || "T"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-sm">
+              {course.profiles?.name || "Tutor"}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            onClick={() => navigate(`/courses/${course.id}`)} 
+            variant="default" 
+            className="w-full"
+          >
+            View Course
+          </Button>
+        </CardFooter>
+      </Card>
+    </ErrorBoundary>
+  );
+};
+
 const Search = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedLevel, setSelectedLevel] = useState<string>("");
   const [location, setLocation] = useState<string>("");
   const [tutors, setTutors] = useState<Profile[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [subjectsError, setSubjectsError] = useState<string | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'tutors' | 'courses'>('tutors');
 
-  // Load subjects only once
   useEffect(() => {
     const loadSubjects = async () => {
       try {
@@ -162,33 +243,35 @@ const Search = () => {
     loadSubjects();
   }, []);
 
-  // Search for tutors when filters change
   useEffect(() => {
-    const searchForTutors = async () => {
-      if (!selectedSubject && !location) return;
+    const searchForResults = async () => {
+      if (!selectedSubject && !location && !selectedLevel) return;
       
       setLoading(true);
       setSearchError(null);
       try {
         const subjectId = selectedSubject === "all-subjects" ? undefined : selectedSubject;
-        const results = await searchTutors(subjectId, location || undefined);
-        setTutors(results);
+        
+        const tutorResults = await searchTutors(subjectId, location || undefined);
+        setTutors(tutorResults);
+        
+        const courseResults = await searchCourses(subjectId, selectedLevel || undefined, location || undefined);
+        setCourses(courseResults);
       } catch (error) {
-        console.error("Error searching for tutors:", error);
-        setSearchError("Failed to search for tutors");
-        toast.error("Error searching for tutors. Please try again.");
+        console.error("Error searching for results:", error);
+        setSearchError("Failed to search for tutors and courses");
+        toast.error("Error searching. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    // Add a small delay to avoid too many API calls
     const timeoutId = setTimeout(() => {
-      searchForTutors();
+      searchForResults();
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [selectedSubject, location]);
+  }, [selectedSubject, selectedLevel, location]);
 
   const handleRetrySubjects = async () => {
     try {
@@ -208,21 +291,135 @@ const Search = () => {
 
   const handleRetrySearch = () => {
     setSearchError(null);
-    // This will trigger the useEffect for searching
-    const newSubject = selectedSubject === "" ? "all-subjects" : selectedSubject;
-    setSelectedSubject(newSubject);
+    setSelectedSubject("");
+    setSelectedLevel("");
+    setLocation("");
+  };
+
+  const searchCourses = async (subjectId?: string, level?: string, location?: string) => {
+    return new Promise<Course[]>((resolve) => {
+      setTimeout(() => {
+        const allCourses: Course[] = [
+          {
+            id: "1",
+            tutor_id: "1",
+            title: "Introduction to Calculus",
+            description: "A beginner-friendly course covering the fundamentals of calculus.",
+            subject_id: "math-101",
+            duration_weeks: 8,
+            level: "beginner",
+            price: 199,
+            max_students: 20,
+            current_students: 12,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            profiles: {
+              id: "1",
+              name: "John Smith",
+              role: "tutor",
+              avatar_url: "/placeholder.svg",
+              location: "New York",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            subjects: {
+              id: "math-101",
+              name: "Mathematics",
+              description: "Study of numbers, quantities, and shapes",
+              created_at: new Date().toISOString()
+            }
+          },
+          {
+            id: "2",
+            tutor_id: "2",
+            title: "Advanced Python Programming",
+            description: "Take your Python skills to the next level with advanced concepts and real-world applications.",
+            subject_id: "cs-102",
+            duration_weeks: 10,
+            level: "advanced",
+            price: 299,
+            max_students: 15,
+            current_students: 8,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            profiles: {
+              id: "2",
+              name: "Sarah Johnson",
+              role: "tutor",
+              avatar_url: "/placeholder.svg",
+              location: "San Francisco",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            subjects: {
+              id: "cs-102",
+              name: "Computer Science",
+              description: "Study of computation and information",
+              created_at: new Date().toISOString()
+            }
+          },
+          {
+            id: "3",
+            tutor_id: "3",
+            title: "English Literature Classics",
+            description: "Explore the greatest works of English literature and develop critical analysis skills.",
+            subject_id: "eng-101",
+            duration_weeks: 6,
+            level: "intermediate",
+            price: 149,
+            max_students: 25,
+            current_students: 18,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            profiles: {
+              id: "3",
+              name: "Emily Davis",
+              role: "tutor",
+              avatar_url: "/placeholder.svg",
+              location: "Chicago",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            subjects: {
+              id: "eng-101",
+              name: "English",
+              description: "Study of language and literature",
+              created_at: new Date().toISOString()
+            }
+          }
+        ];
+
+        let filteredCourses = [...allCourses];
+
+        if (subjectId) {
+          filteredCourses = filteredCourses.filter(course => course.subject_id === subjectId);
+        }
+
+        if (level) {
+          filteredCourses = filteredCourses.filter(course => course.level === level);
+        }
+
+        if (location) {
+          filteredCourses = filteredCourses.filter(course => 
+            course.profiles?.location?.toLowerCase().includes(location.toLowerCase())
+          );
+        }
+
+        resolve(filteredCourses);
+      }, 500);
+    });
   };
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Find a Tutor</h1>
+      <h1 className="text-2xl font-bold mb-6">Find Tutors & Courses</h1>
       
       <div className="grid gap-6 md:grid-cols-[300px_1fr]">
         <div className="space-y-6">
           <ErrorBoundary>
             <Card>
               <CardHeader>
-                <CardTitle>Filter Tutors</CardTitle>
+                <CardTitle>Filter</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -263,6 +460,24 @@ const Search = () => {
                 </div>
                 
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">Level</label>
+                  <Select
+                    value={selectedLevel}
+                    onValueChange={setSelectedLevel}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Levels" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Levels</SelectItem>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Location</label>
                   <Input
                     placeholder="Enter city or country"
@@ -276,12 +491,39 @@ const Search = () => {
                   className="w-full"
                   onClick={() => {
                     setSelectedSubject("");
+                    setSelectedLevel("");
                     setLocation("");
                   }}
-                  disabled={!selectedSubject && !location}
+                  disabled={!selectedSubject && !selectedLevel && !location}
                 >
                   Clear Filters
                 </Button>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>View</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant={activeTab === 'tutors' ? "default" : "outline"}
+                    className="w-full"
+                    onClick={() => setActiveTab('tutors')}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Tutors
+                  </Button>
+                  <Button 
+                    variant={activeTab === 'courses' ? "default" : "outline"}
+                    className="w-full"
+                    onClick={() => setActiveTab('courses')}
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Courses
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </ErrorBoundary>
@@ -289,27 +531,60 @@ const Search = () => {
         
         <ErrorBoundary>
           <div className="space-y-6">
-            {loading ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <TutorCardSkeleton key={i} />
-                ))}
-              </div>
-            ) : searchError ? (
-              <ErrorDisplay 
-                message="There was an error searching for tutors. Please try again." 
-                retry={handleRetrySearch}
-              />
-            ) : (
+            {activeTab === 'tutors' ? (
               <>
-                {tutors.length > 0 ? (
+                <h2 className="text-xl font-bold">Available Tutors</h2>
+                {loading ? (
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {tutors.map((tutor) => (
-                      <TutorCard key={tutor.id} tutor={tutor} />
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <TutorCardSkeleton key={i} />
                     ))}
                   </div>
+                ) : searchError ? (
+                  <ErrorDisplay 
+                    message="There was an error searching for tutors. Please try again." 
+                    retry={handleRetrySearch}
+                  />
                 ) : (
-                  <NoResultsMessage message="Try changing your search criteria" />
+                  <>
+                    {tutors.length > 0 ? (
+                      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {tutors.map((tutor) => (
+                          <TutorCard key={tutor.id} tutor={tutor} />
+                        ))}
+                      </div>
+                    ) : (
+                      <NoResultsMessage message="No tutors found. Try changing your search criteria" />
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold">Available Courses</h2>
+                {loading ? (
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <TutorCardSkeleton key={i} />
+                    ))}
+                  </div>
+                ) : searchError ? (
+                  <ErrorDisplay 
+                    message="There was an error searching for courses. Please try again." 
+                    retry={handleRetrySearch}
+                  />
+                ) : (
+                  <>
+                    {courses.length > 0 ? (
+                      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {courses.map((course) => (
+                          <CourseCard key={course.id} course={course} />
+                        ))}
+                      </div>
+                    ) : (
+                      <NoResultsMessage message="No courses found. Try changing your search criteria" />
+                    )}
+                  </>
                 )}
               </>
             )}

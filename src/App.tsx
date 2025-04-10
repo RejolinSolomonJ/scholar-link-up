@@ -24,8 +24,19 @@ import { Suspense, lazy } from "react";
 import { FullPageLoader } from "./components/ui/loading-states";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-// Lazy load CourseDetail component
+// Lazy load components
 const CourseDetail = lazy(() => import("./pages/CourseDetail"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const Subjects = lazy(() => import("./pages/Subjects"));
+const BecomeATutor = lazy(() => import("./pages/BecomeATutor"));
+const Resources = lazy(() => import("./pages/Resources"));
+const SuccessStories = lazy(() => import("./pages/SuccessStories"));
+const FAQs = lazy(() => import("./pages/FAQs"));
+const Company = lazy(() => import("./pages/Company"));
+const Contact = lazy(() => import("./pages/Contact"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Configure the query client with retry and error handling
 const queryClient = new QueryClient({
@@ -67,6 +78,20 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/auth-redirect" element={<AuthRedirect />} />
               <Route path="/about" element={<AboutUs />} />
+              <Route path="/reset-password" element={
+                <Suspense fallback={<FullPageLoader />}>
+                  <ResetPassword />
+                </Suspense>
+              } />
+              
+              {/* Public pages */}
+              <Route path="/how-it-works" element={
+                <Suspense fallback={<FullPageLoader />}>
+                  <HowItWorks />
+                </Suspense>
+              } />
+              
+              {/* Protected routes */}
               <Route element={
                 <ProtectedRoute>
                   <Layout />

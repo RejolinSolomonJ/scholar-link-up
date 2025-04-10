@@ -15,6 +15,8 @@ export type Subject = {
   id: string;
   name: string;
   description?: string;
+  category?: string;
+  level?: 'beginner' | 'intermediate' | 'advanced' | 'all';
   created_at: string;
 };
 
@@ -115,4 +117,44 @@ export type CourseEnrollment = {
   // Add relations that come from Supabase joins
   profiles?: Profile;
   courses?: Course;
+};
+
+export type Testimonial = {
+  id: string;
+  student_name: string;
+  student_avatar?: string;
+  course_name?: string;
+  subject?: string;
+  content: string;
+  rating: number;
+  created_at: string;
+};
+
+export type FAQ = {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  order: number;
+};
+
+export type Resource = {
+  id: string;
+  title: string;
+  description: string;
+  type: 'blog' | 'document' | 'video' | 'link';
+  url?: string;
+  file_url?: string;
+  thumbnail_url?: string;
+  created_at: string;
+  subject_id?: string;
+};
+
+export type TeamMember = {
+  id: string;
+  name: string;
+  role: string;
+  bio?: string;
+  avatar_url?: string;
+  order: number;
 };
