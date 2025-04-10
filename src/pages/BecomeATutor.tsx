@@ -28,8 +28,8 @@ const formSchema = z.object({
   }),
   video_teaching: z.boolean().optional(),
   in_person_teaching: z.boolean().optional(),
-  terms_agreed: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to the terms and conditions." }),
+  terms_agreed: z.boolean().refine(val => val === true, {
+    message: "You must agree to the terms and conditions."
   }),
 });
 

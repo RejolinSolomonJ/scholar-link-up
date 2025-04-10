@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Star, MapPin, Clock, Calendar, RefreshCw, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Star, MapPin, Clock, Calendar, RefreshCw, AlertTriangle, Users, BookOpen } from "lucide-react";
 import { getSubjects, searchTutors, getTutorReviews } from "@/lib/api";
 import type { Subject, Profile, Review, Course } from "@/types/database.types";
 import { useNavigate } from "react-router-dom";

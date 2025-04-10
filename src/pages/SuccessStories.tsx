@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Testimonial } from "@/types/database.types";
 import { LoadingSpinner, ErrorDisplay } from "@/components/ui/loading-states";
 import { QuoteIcon, Star } from "lucide-react";

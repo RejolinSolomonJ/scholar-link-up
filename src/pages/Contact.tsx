@@ -19,8 +19,8 @@ const formSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
   subject: z.string().min(1, "Please select a subject."),
   message: z.string().min(10, "Message must be at least 10 characters."),
-  agreeToTerms: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to our terms and privacy policy." }),
+  agreeToTerms: z.boolean().refine(val => val === true, {
+    message: "You must agree to our terms and privacy policy."
   }),
 });
 
