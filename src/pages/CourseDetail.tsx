@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/use-profile";
-import { getCourse, enrollInCourse, getCourseEnrollments, getStudentEnrollments } from "@/lib/api";
-import { Course, CourseEnrollment } from "@/types/database.types";
+import { getCourse, enrollInCourse, getCourseEnrollments, getStudentEnrollments, getSubject } from "@/lib/api";
+import { Course, CourseEnrollment, Subject } from "@/types/database.types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,7 @@ const CourseDetail = () => {
   const { profile } = useProfile();
   const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
+  const [subject, setSubject] = useState<Subject | null>(null);
   const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([]);
   const [userEnrollments, setUserEnrollments] = useState<CourseEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +56,12 @@ const CourseDetail = () => {
         }
         
         setCourse(courseData);
+
+        // Load subject data if needed
+        if (courseData.subject_id) {
+          const subjectData = await getSubject(courseData.subject_id);
+          setSubject(subjectData);
+        }
 
         // Load enrollments if the user is the course tutor
         if (profile?.role === 'tutor' && courseData.tutor_id === user.id) {
@@ -160,7 +167,7 @@ const CourseDetail = () => {
                 </div>
                 <div className="flex flex-col items-center justify-center p-4 bg-muted rounded-lg">
                   <BookOpen className="h-6 w-6 mb-2 text-primary" />
-                  <span className="text-sm font-medium">{course.subjects?.name || "General"}</span>
+                  <span className="text-sm font-medium">{subject?.name || "General"}</span>
                 </div>
               </div>
               
@@ -198,7 +205,7 @@ const CourseDetail = () => {
               <CardTitle>Course Tutor</CardTitle>
             </CardHeader>
             <CardContent>
-              {course.profiles && (
+              {course.profiles ? (
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-12 w-12">
                     <AvatarImage src={course.profiles.avatar_url || ""} alt={course.profiles.name} />
@@ -215,6 +222,8 @@ const CourseDetail = () => {
                     )}
                   </div>
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Tutor information not available</p>
               )}
             </CardContent>
           </Card>
@@ -235,14 +244,14 @@ const CourseDetail = () => {
                         <Avatar className="h-8 w-8">
                           <AvatarImage 
                             src={enrollment.profiles?.avatar_url || ""} 
-                            alt={enrollment.profiles?.name} 
+                            alt={enrollment.profiles?.name || "Student"} 
                           />
                           <AvatarFallback>
-                            {enrollment.profiles?.name?.charAt(0).toUpperCase()}
+                            {enrollment.profiles?.name?.charAt(0).toUpperCase() || "S"}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <p className="text-sm font-medium">{enrollment.profiles?.name}</p>
+                          <p className="text-sm font-medium">{enrollment.profiles?.name || "Student"}</p>
                           <p className="text-xs text-muted-foreground">
                             Enrolled: {new Date(enrollment.enrollment_date).toLocaleDateString()}
                           </p>

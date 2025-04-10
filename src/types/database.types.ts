@@ -101,6 +101,9 @@ export type Course = {
   current_students?: number;
   created_at: string;
   updated_at: string;
+  // Add relations that come from Supabase joins
+  profiles?: Profile;
+  subjects?: Subject;
 };
 
 export type CourseEnrollment = {
@@ -109,4 +112,7 @@ export type CourseEnrollment = {
   student_id: string;
   enrollment_date: string;
   status: EnrollmentStatus;
+  // Add relations that come from Supabase joins
+  profiles?: Profile;
+  courses?: Course;
 };
