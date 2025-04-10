@@ -94,8 +94,12 @@ const Login = () => {
     setResetLoading(true);
 
     try {
+      // Use the current origin instead of hardcoding localhost
+      const origin = window.location.origin;
+      const resetUrl = `${origin}/reset-password`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: resetUrl,
       });
 
       if (error) throw error;
