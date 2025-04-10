@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +16,6 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-// Define password validation schema
 const passwordSchema = z.string().min(6).max(8)
   .refine(
     (password) => /[A-Z]/.test(password),
@@ -32,14 +30,12 @@ const passwordSchema = z.string().min(6).max(8)
     { message: "Password must include at least one special character (!@#$%^&*)" }
   );
 
-// Define form schema
 const loginFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: passwordSchema,
   rememberMe: z.boolean().optional(),
 });
 
-// Define password reset form schema
 const resetPasswordFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
 });
@@ -53,7 +49,6 @@ const Login = () => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  // Login form
   const form = useForm<z.infer<typeof loginFormSchema>>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: {
@@ -63,7 +58,6 @@ const Login = () => {
     },
   });
 
-  // Reset password form
   const resetForm = useForm<z.infer<typeof resetPasswordFormSchema>>({
     resolver: zodResolver(resetPasswordFormSchema),
     defaultValues: {
@@ -79,7 +73,6 @@ const Login = () => {
       console.log("Attempting to sign in with:", values.email);
       await signIn(values.email, values.password);
       console.log("Sign in successful, navigating to auth-redirect");
-      // After successful login, navigate to auth-redirect which will handle proper redirection
       navigate('/auth-redirect', { replace: true });
     } catch (err: any) {
       console.error("Login error:", err);
@@ -94,9 +87,10 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      // Use the current origin instead of hardcoding localhost
-      const origin = window.location.origin;
-      const resetUrl = `${origin}/reset-password`;
+      const baseUrl = window.location.origin;
+      const resetUrl = `${baseUrl}/reset-password`;
+      
+      console.log("Sending reset password email with redirect URL:", resetUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: resetUrl,

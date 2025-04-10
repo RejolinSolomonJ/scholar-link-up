@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +12,6 @@ import { AlertCircle, Info, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
-// Define password validation schema
 const passwordSchema = z.string().min(6).max(8)
   .refine(
     (password) => /[A-Z]/.test(password),
@@ -28,7 +26,6 @@ const passwordSchema = z.string().min(6).max(8)
     { message: "Password must include at least one special character (!@#$%^&*)" }
   );
 
-// Define form schema
 const resetPasswordFormSchema = z.object({
   password: passwordSchema,
   confirmPassword: z.string().min(1, "Please confirm your password"),
@@ -53,21 +50,35 @@ const ResetPassword = () => {
     },
   });
 
-  // Check if there's a valid recovery token in the URL
   useEffect(() => {
     const checkRecoveryToken = async () => {
       try {
         setTokenCheckLoading(true);
         
-        // Get the hash fragment from the URL
-        const hash = window.location.hash.substring(1);
-        const params = new URLSearchParams(hash);
-        const accessToken = params.get("access_token");
-        const type = params.get("type");
+        const hash = window.location.hash;
+        const query = window.location.search;
+        console.log("URL hash:", hash);
+        console.log("URL query:", query);
         
-        // Validate that this is a recovery token
+        let accessToken = null;
+        let type = null;
+        
+        if (hash && hash.length > 1) {
+          const params = new URLSearchParams(hash.substring(1));
+          accessToken = params.get("access_token");
+          type = params.get("type");
+          console.log("Extracted from hash - token:", accessToken ? "exists" : "none", "type:", type);
+        }
+        
+        if (!accessToken && query && query.length > 1) {
+          const params = new URLSearchParams(query);
+          accessToken = params.get("access_token");
+          type = params.get("type");
+          console.log("Extracted from query - token:", accessToken ? "exists" : "none", "type:", type);
+        }
+        
         if (accessToken && type === "recovery") {
-          // Set the user's session using the recovery token
+          console.log("Found valid recovery token, setting session...");
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: "",
@@ -78,9 +89,11 @@ const ResetPassword = () => {
             setError("Invalid or expired recovery token");
             setValidToken(false);
           } else {
+            console.log("Recovery token validated successfully");
             setValidToken(true);
           }
         } else {
+          console.log("Invalid recovery link parameters");
           setError("Invalid recovery link. Please request a new password reset.");
           setValidToken(false);
         }
@@ -101,17 +114,17 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      // Update the user's password
+      console.log("Updating password...");
       const { error } = await supabase.auth.updateUser({
         password: values.password,
       });
       
       if (error) throw error;
       
+      console.log("Password updated successfully");
       setSuccess(true);
       toast.success("Password reset successfully! You can now log in with your new password.");
       
-      // Redirect to login page after a short delay
       setTimeout(() => {
         navigate("/login");
       }, 3000);
