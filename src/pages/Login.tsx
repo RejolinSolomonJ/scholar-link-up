@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -115,9 +116,9 @@ const Login = () => {
     try {
       console.log("Sending password reset email to:", values.email);
       
-      // Request password reset email
+      // Request password reset email with new options
       const { error, data } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: window.location.origin + '/reset-password',
+        redirectTo: window.location.origin + '/login',
       });
 
       if (error) throw error;
@@ -125,10 +126,9 @@ const Login = () => {
       console.log("Reset email sent successfully");
       setResetEmail(values.email);
       setResetEmailSent(true);
-      toast.success("Password reset instructions sent to your email. Please check your inbox and spam folder.");
+      setOtpVerifyMode(true); // Automatically move to OTP verification mode
+      toast.success("Password reset code sent to your email. Please check your inbox and spam folder.");
       
-      // Show detailed instructions after email is sent
-      setError(""); // Clear any previous errors
     } catch (err: any) {
       console.error("Password reset error:", err);
       setError(err.message || "Failed to send reset instructions");
@@ -322,8 +322,8 @@ const Login = () => {
                 : otpVerifyMode 
                   ? `Enter the verification code sent to ${resetEmail}` 
                   : resetEmailSent 
-                    ? `We've sent instructions to ${resetEmail}. Please check both your inbox and spam folder.`
-                    : "Enter your email address and we'll send you instructions to reset your password."}
+                    ? `We've sent a verification code to ${resetEmail}. Please check both your inbox and spam folder.`
+                    : "Enter your email address and we'll send you a verification code to reset your password."}
             </DialogDescription>
           </DialogHeader>
           
@@ -339,7 +339,7 @@ const Login = () => {
               <Alert className="bg-green-50 text-green-800 border-green-100">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription>
-                  Reset instructions sent. Please check your email inbox and spam folder.
+                  Reset code sent. Please check your email inbox and spam folder.
                 </AlertDescription>
               </Alert>
               <Alert className="bg-blue-50 text-blue-800 border-blue-100">
@@ -365,7 +365,7 @@ const Login = () => {
                   onClick={() => handleResetPassword({ email: resetEmail })}
                   disabled={resetLoading}
                 >
-                  Resend Instructions
+                  Resend Code
                 </Button>
               </div>
             </div>
@@ -406,7 +406,7 @@ const Login = () => {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={resetLoading}>
-                    {resetLoading ? "Sending..." : "Send Reset Instructions"}
+                    {resetLoading ? "Sending..." : "Send Verification Code"}
                   </Button>
                 </DialogFooter>
               </form>
