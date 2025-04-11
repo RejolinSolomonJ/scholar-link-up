@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -114,22 +113,25 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      console.log("Sending OTP to email");
+      console.log("Sending password reset email to:", values.email);
       
-      // Request OTP code to the email
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: "",
+      // Request password reset email
+      const { error, data } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: window.location.origin + '/reset-password',
       });
 
       if (error) throw error;
 
+      console.log("Reset email sent successfully");
       setResetEmail(values.email);
       setResetEmailSent(true);
-      setOtpVerifyMode(true);
-      toast.success("Verification code sent to your email. Please check your inbox.");
+      toast.success("Password reset instructions sent to your email. Please check your inbox and spam folder.");
+      
+      // Show detailed instructions after email is sent
+      setError(""); // Clear any previous errors
     } catch (err: any) {
       console.error("Password reset error:", err);
-      setError(err.message || "Failed to send verification code");
+      setError(err.message || "Failed to send reset instructions");
     } finally {
       setResetLoading(false);
     }
@@ -141,6 +143,7 @@ const Login = () => {
     if (value.length === 6) {
       try {
         setResetLoading(true);
+        console.log("Verifying OTP:", value);
         
         // Verify the OTP
         const { data, error } = await supabase.auth.verifyOtp({
@@ -152,10 +155,11 @@ const Login = () => {
         if (error) throw error;
         
         if (data.session) {
+          console.log("OTP verified successfully");
           setResetToken(data.session.access_token);
           setOtpVerifyMode(false);
           setShowNewPasswordForm(true);
-          toast.success("OTP verified successfully. Please set your new password.");
+          toast.success("Verification successful. Please set your new password.");
         }
       } catch (err: any) {
         console.error("OTP verification error:", err);
@@ -317,7 +321,9 @@ const Login = () => {
                 ? "Please enter your new password." 
                 : otpVerifyMode 
                   ? `Enter the verification code sent to ${resetEmail}` 
-                  : "Enter your email address and we'll send you a verification code to reset your password."}
+                  : resetEmailSent 
+                    ? `We've sent instructions to ${resetEmail}. Please check both your inbox and spam folder.`
+                    : "Enter your email address and we'll send you instructions to reset your password."}
             </DialogDescription>
           </DialogHeader>
           
@@ -333,15 +339,35 @@ const Login = () => {
               <Alert className="bg-green-50 text-green-800 border-green-100">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription>
-                  Verification code sent. Please check your email and enter the code to reset your password.
+                  Reset instructions sent. Please check your email inbox and spam folder.
                 </AlertDescription>
               </Alert>
-              <Button 
-                className="w-full" 
-                onClick={() => setOtpVerifyMode(true)}
-              >
-                Enter Verification Code
-              </Button>
+              <Alert className="bg-blue-50 text-blue-800 border-blue-100">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription>
+                  <p className="mb-2">Troubleshooting tips if you don't receive the email:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Check your spam/junk folder</li>
+                    <li>Verify the email address is correct</li>
+                    <li>Wait a few minutes for the email to arrive</li>
+                    <li>Try again with the same email if needed</li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelReset}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => handleResetPassword({ email: resetEmail })}
+                  disabled={resetLoading}
+                >
+                  Resend Instructions
+                </Button>
+              </div>
             </div>
           )}
 
@@ -380,7 +406,7 @@ const Login = () => {
                     Cancel
                   </Button>
                   <Button type="submit" disabled={resetLoading}>
-                    {resetLoading ? "Sending..." : "Send Verification Code"}
+                    {resetLoading ? "Sending..." : "Send Reset Instructions"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -416,7 +442,12 @@ const Login = () => {
               <Alert className="bg-blue-50 text-blue-800 border-blue-100">
                 <Info className="h-4 w-4 text-blue-600" />
                 <AlertDescription>
-                  Didn't receive the code? Check your spam folder or try again in a few minutes.
+                  <p className="mb-2">Troubleshooting tips if you're having issues:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Check spam folder in Gmail</li>
+                    <li>Make sure to use the most recent code</li>
+                    <li>Codes typically expire after 1 hour</li>
+                  </ul>
                 </AlertDescription>
               </Alert>
               
