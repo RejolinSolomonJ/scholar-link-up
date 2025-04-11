@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,7 +37,6 @@ const Company = lazy(() => import("./pages/Company"));
 const Contact = lazy(() => import("./pages/Contact"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Configure the query client with retry and error handling
 const queryClient = new QueryClient({
@@ -78,11 +78,6 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/auth-redirect" element={<AuthRedirect />} />
               <Route path="/about" element={<AboutUs />} />
-              <Route path="/reset-password" element={
-                <Suspense fallback={<FullPageLoader />}>
-                  <ResetPassword />
-                </Suspense>
-              } />
               
               {/* Public pages */}
               <Route path="/how-it-works" element={

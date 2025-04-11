@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,10 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 const passwordSchema = z.string().min(6).max(8)
   .refine(
@@ -40,12 +42,29 @@ const resetPasswordFormSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
 });
 
+const otpFormSchema = z.object({
+  otp: z.string().length(6, { message: "OTP must be 6 characters" }),
+});
+
+const newPasswordFormSchema = z.object({
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [otpVerifyMode, setOtpVerifyMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [otpValue, setOtpValue] = useState("");
+  const [showNewPasswordForm, setShowNewPasswordForm] = useState(false);
+  const [resetToken, setResetToken] = useState("");
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -62,6 +81,14 @@ const Login = () => {
     resolver: zodResolver(resetPasswordFormSchema),
     defaultValues: {
       email: "",
+    },
+  });
+
+  const newPasswordForm = useForm<z.infer<typeof newPasswordFormSchema>>({
+    resolver: zodResolver(newPasswordFormSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -87,22 +114,99 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      console.log("Sending reset password email");
+      console.log("Sending OTP to email");
       
+      // Request OTP code to the email
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: "",
       });
 
       if (error) throw error;
 
+      setResetEmail(values.email);
       setResetEmailSent(true);
-      toast.success("Password reset email sent. Please check your inbox and click the link.");
+      setOtpVerifyMode(true);
+      toast.success("Verification code sent to your email. Please check your inbox.");
     } catch (err: any) {
       console.error("Password reset error:", err);
-      setError(err.message || "Failed to send reset email");
+      setError(err.message || "Failed to send verification code");
     } finally {
       setResetLoading(false);
     }
+  };
+
+  const handleOtpComplete = async (value: string) => {
+    setOtpValue(value);
+    
+    if (value.length === 6) {
+      try {
+        setResetLoading(true);
+        
+        // Verify the OTP
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: resetEmail,
+          token: value,
+          type: 'recovery'
+        });
+        
+        if (error) throw error;
+        
+        if (data.session) {
+          setResetToken(data.session.access_token);
+          setOtpVerifyMode(false);
+          setShowNewPasswordForm(true);
+          toast.success("OTP verified successfully. Please set your new password.");
+        }
+      } catch (err: any) {
+        console.error("OTP verification error:", err);
+        setError(err.message || "Invalid verification code");
+      } finally {
+        setResetLoading(false);
+      }
+    }
+  };
+
+  const handleNewPasswordSubmit = async (values: z.infer<typeof newPasswordFormSchema>) => {
+    setError("");
+    setResetLoading(true);
+
+    try {
+      console.log("Setting new password");
+      
+      // Update the password with the session from the OTP verification
+      const { error } = await supabase.auth.updateUser({
+        password: values.password
+      });
+
+      if (error) throw error;
+
+      // Reset all states and show success
+      setShowResetDialog(false);
+      setResetEmailSent(false);
+      setOtpVerifyMode(false);
+      setShowNewPasswordForm(false);
+      setResetEmail("");
+      setOtpValue("");
+      setResetToken("");
+      
+      toast.success("Password reset successfully! You can now log in with your new password.");
+    } catch (err: any) {
+      console.error("Set new password error:", err);
+      setError(err.message || "Failed to reset password");
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handleCancelReset = () => {
+    setShowResetDialog(false);
+    setResetEmailSent(false);
+    setOtpVerifyMode(false);
+    setShowNewPasswordForm(false);
+    setResetEmail("");
+    setOtpValue("");
+    setResetToken("");
+    setError("");
   };
 
   return (
@@ -207,28 +311,41 @@ const Login = () => {
       <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
+            <DialogTitle>{showNewPasswordForm ? "Set New Password" : otpVerifyMode ? "Enter Verification Code" : "Reset Password"}</DialogTitle>
             <DialogDescription>
-              Enter your email address and we'll send you a link to reset your password.
+              {showNewPasswordForm 
+                ? "Please enter your new password." 
+                : otpVerifyMode 
+                  ? `Enter the verification code sent to ${resetEmail}` 
+                  : "Enter your email address and we'll send you a verification code to reset your password."}
             </DialogDescription>
           </DialogHeader>
           
-          {resetEmailSent ? (
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {resetEmailSent && !otpVerifyMode && !showNewPasswordForm && (
             <div className="space-y-4 py-4">
               <Alert className="bg-green-50 text-green-800 border-green-100">
+                <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription>
-                  Password reset email sent. Please check your inbox and follow the instructions to reset your password.
+                  Verification code sent. Please check your email and enter the code to reset your password.
                 </AlertDescription>
               </Alert>
               <Button 
-                variant="outline" 
                 className="w-full" 
-                onClick={() => setShowResetDialog(false)}
+                onClick={() => setOtpVerifyMode(true)}
               >
-                Close
+                Enter Verification Code
               </Button>
             </div>
-          ) : (
+          )}
+
+          {!otpVerifyMode && !showNewPasswordForm && !resetEmailSent && (
             <Form {...resetForm}>
               <form onSubmit={resetForm.handleSubmit(handleResetPassword)} className="space-y-4">
                 <FormField
@@ -243,6 +360,10 @@ const Login = () => {
                           placeholder="john@example.com" 
                           required 
                           {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setResetEmail(e.target.value);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -250,23 +371,132 @@ const Login = () => {
                   )}
                 />
                 
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                
                 <DialogFooter>
                   <Button 
                     variant="outline" 
-                    onClick={() => setShowResetDialog(false)}
+                    onClick={handleCancelReset}
                     disabled={resetLoading}
                   >
                     Cancel
                   </Button>
                   <Button type="submit" disabled={resetLoading}>
-                    {resetLoading ? "Sending..." : "Send Reset Link"}
+                    {resetLoading ? "Sending..." : "Send Verification Code"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+
+          {otpVerifyMode && !showNewPasswordForm && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="otp">Verification Code</Label>
+                <div className="mx-auto py-2">
+                  <InputOTP 
+                    maxLength={6} 
+                    value={otpValue} 
+                    onChange={(value) => handleOtpComplete(value)}
+                    disabled={resetLoading}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+                <div className="text-center text-sm text-muted-foreground">
+                  Please enter the 6-digit verification code sent to your email
+                </div>
+              </div>
+              
+              <Alert className="bg-blue-50 text-blue-800 border-blue-100">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription>
+                  Didn't receive the code? Check your spam folder or try again in a few minutes.
+                </AlertDescription>
+              </Alert>
+              
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelReset}
+                  disabled={resetLoading}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={() => handleResetPassword({ email: resetEmail })}
+                  disabled={resetLoading}
+                >
+                  Resend Code
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {showNewPasswordForm && (
+            <Form {...newPasswordForm}>
+              <form onSubmit={newPasswordForm.handleSubmit(handleNewPasswordSubmit)} className="space-y-4 py-2">
+                <FormField
+                  control={newPasswordForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Enter new password" 
+                          required 
+                          {...field}
+                        />
+                      </FormControl>
+                      <div className="mt-2 text-xs flex items-start">
+                        <Info className="h-3.5 w-3.5 mr-1 flex-shrink-0 text-muted-foreground mt-0.5" />
+                        <span>
+                          Password must be 6-8 characters, include at least one uppercase letter, 
+                          one lowercase letter, and one special character.
+                        </span>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={newPasswordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Confirm new password" 
+                          required 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancelReset}
+                    disabled={resetLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={resetLoading}>
+                    {resetLoading ? "Resetting Password..." : "Reset Password"}
                   </Button>
                 </DialogFooter>
               </form>
