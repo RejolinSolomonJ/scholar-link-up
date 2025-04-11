@@ -41,6 +41,8 @@ const ResetPassword = () => {
   const [success, setSuccess] = useState(false);
   const [validToken, setValidToken] = useState(false);
   const [tokenCheckLoading, setTokenCheckLoading] = useState(true);
+  const [manualToken, setManualToken] = useState("");
+  const [showManualEntry, setShowManualEntry] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -52,61 +54,87 @@ const ResetPassword = () => {
     },
   });
 
+  // Function to extract token from URL or hash
+  const extractToken = () => {
+    // Try to extract token from both the hash and URL fragments
+    const hash = location.hash;
+    const query = location.search;
+    console.log("Current URL path:", location.pathname);
+    console.log("URL hash:", hash);
+    console.log("URL query:", query);
+    
+    let accessToken = null;
+    let type = null;
+    
+    // Check hash first (modern format)
+    if (hash && hash.length > 1) {
+      const params = new URLSearchParams(hash.substring(1));
+      accessToken = params.get("access_token");
+      type = params.get("type");
+      console.log("Extracted from hash - token:", accessToken ? "exists" : "none", "type:", type);
+    }
+    
+    // If not found in hash, check query params
+    if (!accessToken && query && query.length > 1) {
+      const params = new URLSearchParams(query);
+      accessToken = params.get("access_token");
+      type = params.get("type");
+      console.log("Extracted from query - token:", accessToken ? "exists" : "none", "type:", type);
+    }
+    
+    return { accessToken, type };
+  };
+
+  // Function to validate token and set session
+  const validateToken = async (token: string) => {
+    try {
+      console.log("Validating token:", token ? "exists" : "none");
+      const { error } = await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: "",
+      });
+      
+      if (error) {
+        console.error("Error validating recovery token:", error);
+        setError("Invalid or expired recovery token");
+        setValidToken(false);
+        return false;
+      } else {
+        console.log("Recovery token validated successfully");
+        setValidToken(true);
+        return true;
+      }
+    } catch (err) {
+      console.error("Error validating token:", err);
+      setError("An error occurred validating your recovery token");
+      setValidToken(false);
+      return false;
+    }
+  };
+
   useEffect(() => {
     const checkRecoveryToken = async () => {
       try {
         setTokenCheckLoading(true);
         
-        // Try to extract token from both the hash and URL fragments
-        const hash = location.hash;
-        const query = location.search;
-        console.log("Current URL path:", location.pathname);
-        console.log("URL hash:", hash);
-        console.log("URL query:", query);
-        
-        let accessToken = null;
-        let type = null;
-        
-        // Check hash first (modern format)
-        if (hash && hash.length > 1) {
-          const params = new URLSearchParams(hash.substring(1));
-          accessToken = params.get("access_token");
-          type = params.get("type");
-          console.log("Extracted from hash - token:", accessToken ? "exists" : "none", "type:", type);
-        }
-        
-        // If not found in hash, check query params
-        if (!accessToken && query && query.length > 1) {
-          const params = new URLSearchParams(query);
-          accessToken = params.get("access_token");
-          type = params.get("type");
-          console.log("Extracted from query - token:", accessToken ? "exists" : "none", "type:", type);
-        }
+        const { accessToken, type } = extractToken();
         
         if (accessToken && type === "recovery") {
           console.log("Found valid recovery token, setting session...");
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: "",
-          });
+          const isValid = await validateToken(accessToken);
           
-          if (error) {
-            console.error("Error validating recovery token:", error);
-            setError("Invalid or expired recovery token");
-            setValidToken(false);
-          } else {
-            console.log("Recovery token validated successfully");
-            setValidToken(true);
+          if (!isValid) {
+            console.log("Invalid token from URL, showing manual entry option");
+            setShowManualEntry(true);
           }
         } else {
-          console.log("Invalid recovery link parameters");
-          setError("Invalid recovery link. Please request a new password reset.");
-          setValidToken(false);
+          console.log("No valid recovery token found in URL");
+          setShowManualEntry(true);
         }
       } catch (err) {
         console.error("Error checking recovery token:", err);
         setError("An error occurred validating your recovery token");
-        setValidToken(false);
+        setShowManualEntry(true);
       } finally {
         setTokenCheckLoading(false);
       }
@@ -114,6 +142,23 @@ const ResetPassword = () => {
     
     checkRecoveryToken();
   }, [location]);
+
+  // Handle manual token submission
+  const handleManualTokenSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualToken.trim()) {
+      setError("Please enter your reset token");
+      return;
+    }
+    
+    setTokenCheckLoading(true);
+    const isValid = await validateToken(manualToken);
+    setTokenCheckLoading(false);
+    
+    if (!isValid) {
+      setError("Invalid or expired token. Please request a new password reset.");
+    }
+  };
 
   const handleSubmit = async (values: z.infer<typeof resetPasswordFormSchema>) => {
     setError("");
@@ -223,6 +268,42 @@ const ResetPassword = () => {
                 </Button>
               </form>
             </Form>
+          ) : showManualEntry ? (
+            <div className="space-y-4">
+              <Alert className="bg-blue-50 text-blue-800 border-blue-100 mb-4">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription>
+                  If you have received a password reset email, please paste the token here.
+                </AlertDescription>
+              </Alert>
+              
+              <form onSubmit={handleManualTokenSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-token">Reset Token</Label>
+                  <Input 
+                    id="reset-token"
+                    type="text" 
+                    placeholder="Paste your reset token here" 
+                    value={manualToken}
+                    onChange={(e) => setManualToken(e.target.value)}
+                    required 
+                  />
+                </div>
+                
+                <Button type="submit" className="w-full" disabled={tokenCheckLoading}>
+                  {tokenCheckLoading ? "Validating..." : "Validate Token"}
+                </Button>
+              </form>
+              
+              <div className="text-center mt-2">
+                <Button 
+                  variant="link" 
+                  onClick={() => navigate("/login")}
+                >
+                  Return to Login
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="text-center py-4">
               <Button 

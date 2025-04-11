@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -88,25 +87,16 @@ const Login = () => {
     setResetLoading(true);
 
     try {
-      // Get the current window location origin
-      const origin = window.location.origin;
-      
-      // Get the current pathname and remove '/login' if it's there
-      let redirectPath = '/reset-password';
-      
-      // Combine to create the full reset URL
-      const resetUrl = `${origin}${redirectPath}`;
-      
-      console.log("Sending reset password email with redirect URL:", resetUrl);
+      console.log("Sending reset password email");
       
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: resetUrl,
+        redirectTo: "",
       });
 
       if (error) throw error;
 
       setResetEmailSent(true);
-      toast.success("Password reset email sent. Please check your inbox.");
+      toast.success("Password reset email sent. Please check your inbox and click the link.");
     } catch (err: any) {
       console.error("Password reset error:", err);
       setError(err.message || "Failed to send reset email");
