@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Info, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 const passwordSchema = z.string().min(6).max(8)
   .refine(
@@ -54,9 +54,7 @@ const ResetPassword = () => {
     },
   });
 
-  // Function to extract token from URL or hash
   const extractToken = () => {
-    // Try to extract token from both the hash and URL fragments
     const hash = location.hash;
     const query = location.search;
     console.log("Current URL path:", location.pathname);
@@ -66,7 +64,6 @@ const ResetPassword = () => {
     let accessToken = null;
     let type = null;
     
-    // Check hash first (modern format)
     if (hash && hash.length > 1) {
       const params = new URLSearchParams(hash.substring(1));
       accessToken = params.get("access_token");
@@ -74,7 +71,6 @@ const ResetPassword = () => {
       console.log("Extracted from hash - token:", accessToken ? "exists" : "none", "type:", type);
     }
     
-    // If not found in hash, check query params
     if (!accessToken && query && query.length > 1) {
       const params = new URLSearchParams(query);
       accessToken = params.get("access_token");
@@ -85,7 +81,6 @@ const ResetPassword = () => {
     return { accessToken, type };
   };
 
-  // Function to validate token and set session
   const validateToken = async (token: string) => {
     try {
       console.log("Validating token:", token ? "exists" : "none");
@@ -143,7 +138,6 @@ const ResetPassword = () => {
     checkRecoveryToken();
   }, [location]);
 
-  // Handle manual token submission
   const handleManualTokenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualToken.trim()) {
