@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,6 +64,8 @@ const Login = () => {
   const [otpValue, setOtpValue] = useState("");
   const [showNewPasswordForm, setShowNewPasswordForm] = useState(false);
   const [resetToken, setResetToken] = useState("");
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [rateLimitTimeRemaining, setRateLimitTimeRemaining] = useState(0);
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
@@ -112,21 +113,39 @@ const Login = () => {
   const handleResetPassword = async (values: z.infer<typeof resetPasswordFormSchema>) => {
     setError("");
     setResetLoading(true);
+    setIsRateLimited(false);
 
     try {
       console.log("Sending password reset email to:", values.email);
       
-      // Request password reset email with new options
       const { error, data } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: window.location.origin + '/login',
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("rate limit") || error.status === 429) {
+          setIsRateLimited(true);
+          setRateLimitTimeRemaining(5 * 60);
+          const intervalId = setInterval(() => {
+            setRateLimitTimeRemaining(prev => {
+              if (prev <= 1) {
+                clearInterval(intervalId);
+                setIsRateLimited(false);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          throw new Error("Too many password reset attempts. Please wait 5 minutes before trying again.");
+        } else {
+          throw error;
+        }
+      }
 
       console.log("Reset email sent successfully");
       setResetEmail(values.email);
       setResetEmailSent(true);
-      setOtpVerifyMode(true); // Automatically move to OTP verification mode
+      setOtpVerifyMode(true);
       toast.success("Password reset code sent to your email. Please check your inbox and spam folder.");
       
     } catch (err: any) {
@@ -145,7 +164,6 @@ const Login = () => {
         setResetLoading(true);
         console.log("Verifying OTP:", value);
         
-        // Verify the OTP
         const { data, error } = await supabase.auth.verifyOtp({
           email: resetEmail,
           token: value,
@@ -177,14 +195,12 @@ const Login = () => {
     try {
       console.log("Setting new password");
       
-      // Update the password with the session from the OTP verification
       const { error } = await supabase.auth.updateUser({
         password: values.password
       });
 
       if (error) throw error;
 
-      // Reset all states and show success
       setShowResetDialog(false);
       setResetEmailSent(false);
       setOtpVerifyMode(false);
@@ -211,6 +227,12 @@ const Login = () => {
     setOtpValue("");
     setResetToken("");
     setError("");
+  };
+
+  const formatRemainingTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
   return (
@@ -334,6 +356,16 @@ const Login = () => {
             </Alert>
           )}
 
+          {isRateLimited && (
+            <Alert variant="destructive" className="bg-orange-50 text-orange-800 border-orange-100">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+              <AlertDescription>
+                <p>Email sending rate limit exceeded. Please wait {formatRemainingTime(rateLimitTimeRemaining)} before trying again.</p>
+                <p className="mt-2 text-sm">This is a security measure to prevent abuse.</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {resetEmailSent && !otpVerifyMode && !showNewPasswordForm && (
             <div className="space-y-4 py-4">
               <Alert className="bg-green-50 text-green-800 border-green-100">
@@ -363,9 +395,9 @@ const Login = () => {
                 </Button>
                 <Button 
                   onClick={() => handleResetPassword({ email: resetEmail })}
-                  disabled={resetLoading}
+                  disabled={resetLoading || isRateLimited}
                 >
-                  Resend Code
+                  {isRateLimited ? `Wait ${formatRemainingTime(rateLimitTimeRemaining)}` : "Resend Code"}
                 </Button>
               </div>
             </div>
@@ -405,8 +437,10 @@ const Login = () => {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={resetLoading}>
-                    {resetLoading ? "Sending..." : "Send Verification Code"}
+                  <Button type="submit" disabled={resetLoading || isRateLimited}>
+                    {isRateLimited 
+                      ? `Wait ${formatRemainingTime(rateLimitTimeRemaining)}`
+                      : resetLoading ? "Sending..." : "Send Verification Code"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -442,11 +476,11 @@ const Login = () => {
               <Alert className="bg-blue-50 text-blue-800 border-blue-100">
                 <Info className="h-4 w-4 text-blue-600" />
                 <AlertDescription>
-                  <p className="mb-2">Troubleshooting tips if you're having issues:</p>
+                  <p className="mb-2">If you didn't receive a code:</p>
                   <ul className="list-disc pl-5 space-y-1">
-                    <li>Check spam folder in Gmail</li>
-                    <li>Make sure to use the most recent code</li>
-                    <li>Codes typically expire after 1 hour</li>
+                    <li>Check your spam/junk folder</li>
+                    <li>Try using a different email address</li>
+                    <li>Contact support if problems persist</li>
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -462,9 +496,11 @@ const Login = () => {
                 <Button 
                   type="button" 
                   onClick={() => handleResetPassword({ email: resetEmail })}
-                  disabled={resetLoading}
+                  disabled={resetLoading || isRateLimited}
                 >
-                  Resend Code
+                  {isRateLimited 
+                    ? `Wait ${formatRemainingTime(rateLimitTimeRemaining)}`
+                    : "Resend Code"}
                 </Button>
               </DialogFooter>
             </div>
