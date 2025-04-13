@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Star, MapPin, Clock, Calendar, RefreshCw, AlertTriangle, Users, BookOpen } from "lucide-react";
-import { getSubjects, searchTutors, getTutorReviews } from "@/lib/api";
+import { getSubjects, searchTutors, getTutorReviews, getAllCourses } from "@/lib/api";
 import type { Subject, Profile, Review, Course } from "@/types/database.types";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -257,8 +256,28 @@ const Search = () => {
         const tutorResults = await searchTutors(subjectId, location || undefined);
         setTutors(tutorResults);
         
-        const courseResults = await searchCourses(subjectId, selectedLevel || undefined, location || undefined);
-        setCourses(courseResults);
+        // Get all courses and filter them client-side
+        const allCourses = await getAllCourses();
+        let filteredCourses = [...allCourses];
+        
+        // Apply subject filter
+        if (subjectId) {
+          filteredCourses = filteredCourses.filter(course => course.subject_id === subjectId);
+        }
+        
+        // Apply level filter
+        if (selectedLevel) {
+          filteredCourses = filteredCourses.filter(course => course.level === selectedLevel);
+        }
+        
+        // Apply location filter
+        if (location) {
+          filteredCourses = filteredCourses.filter(course => 
+            course.profiles?.location?.toLowerCase().includes(location.toLowerCase())
+          );
+        }
+        
+        setCourses(filteredCourses);
       } catch (error) {
         console.error("Error searching for results:", error);
         setSearchError("Failed to search for tutors and courses");
@@ -296,120 +315,6 @@ const Search = () => {
     setSelectedSubject("");
     setSelectedLevel("");
     setLocation("");
-  };
-
-  const searchCourses = async (subjectId?: string, level?: string, location?: string) => {
-    return new Promise<Course[]>((resolve) => {
-      setTimeout(() => {
-        const allCourses: Course[] = [
-          {
-            id: "1",
-            tutor_id: "1",
-            title: "Introduction to Calculus",
-            description: "A beginner-friendly course covering the fundamentals of calculus.",
-            subject_id: "math-101",
-            duration_weeks: 8,
-            level: "beginner",
-            price: 199,
-            max_students: 20,
-            current_students: 12,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            profiles: {
-              id: "1",
-              name: "John Smith",
-              role: "tutor",
-              avatar_url: "/placeholder.svg",
-              location: "New York",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-            subjects: {
-              id: "math-101",
-              name: "Mathematics",
-              description: "Study of numbers, quantities, and shapes",
-              created_at: new Date().toISOString()
-            }
-          },
-          {
-            id: "2",
-            tutor_id: "2",
-            title: "Advanced Python Programming",
-            description: "Take your Python skills to the next level with advanced concepts and real-world applications.",
-            subject_id: "cs-102",
-            duration_weeks: 10,
-            level: "advanced",
-            price: 299,
-            max_students: 15,
-            current_students: 8,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            profiles: {
-              id: "2",
-              name: "Sarah Johnson",
-              role: "tutor",
-              avatar_url: "/placeholder.svg",
-              location: "San Francisco",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-            subjects: {
-              id: "cs-102",
-              name: "Computer Science",
-              description: "Study of computation and information",
-              created_at: new Date().toISOString()
-            }
-          },
-          {
-            id: "3",
-            tutor_id: "3",
-            title: "English Literature Classics",
-            description: "Explore the greatest works of English literature and develop critical analysis skills.",
-            subject_id: "eng-101",
-            duration_weeks: 6,
-            level: "intermediate",
-            price: 149,
-            max_students: 25,
-            current_students: 18,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            profiles: {
-              id: "3",
-              name: "Emily Davis",
-              role: "tutor",
-              avatar_url: "/placeholder.svg",
-              location: "Chicago",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-            subjects: {
-              id: "eng-101",
-              name: "English",
-              description: "Study of language and literature",
-              created_at: new Date().toISOString()
-            }
-          }
-        ];
-
-        let filteredCourses = [...allCourses];
-
-        if (subjectId) {
-          filteredCourses = filteredCourses.filter(course => course.subject_id === subjectId);
-        }
-
-        if (level) {
-          filteredCourses = filteredCourses.filter(course => course.level === level);
-        }
-
-        if (location) {
-          filteredCourses = filteredCourses.filter(course => 
-            course.profiles?.location?.toLowerCase().includes(location.toLowerCase())
-          );
-        }
-
-        resolve(filteredCourses);
-      }, 500);
-    });
   };
 
   return (

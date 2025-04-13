@@ -37,8 +37,6 @@ const MyCourses = () => {
           ]);
           
           setEnrollments(studentEnrollments);
-          
-          // Get all courses
           setCourses(allCourses);
         }
       } catch (error) {
@@ -57,11 +55,17 @@ const MyCourses = () => {
   const handleEnroll = async (courseId: string) => {
     if (!user) return;
     
-    const enrollment = await enrollInCourse(courseId, user.id);
-    if (enrollment) {
-      // Reload the enrollments to reflect the changes
-      const updatedEnrollments = await getStudentEnrollments(user.id);
-      setEnrollments(updatedEnrollments);
+    try {
+      const enrollment = await enrollInCourse(courseId, user.id);
+      if (enrollment) {
+        toast.success("Successfully enrolled in the course!");
+        // Reload the enrollments to reflect the changes
+        const updatedEnrollments = await getStudentEnrollments(user.id);
+        setEnrollments(updatedEnrollments);
+      }
+    } catch (error) {
+      console.error("Error enrolling in course:", error);
+      toast.error("Failed to enroll in the course. Please try again.");
     }
   };
 
