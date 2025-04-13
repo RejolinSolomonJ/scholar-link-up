@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthError } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -37,7 +38,7 @@ const formSchema = z.object({
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [passwordResetStep, setPasswordResetStep] = useState<"email" | "otp" | "newPassword">("email");
+  const [passwordResetStep, setPasswordResetStep] = useState<"email" | "otp" | "newPassword" | "default">("default");
   const [resetEmail, setResetEmail] = useState("");
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
@@ -254,9 +255,11 @@ const Login = () => {
           )}
         </CardContent>
         <CardFooter className="flex flex-col gap-2 items-center">
-          <Link to="/register" className="text-sm text-muted-foreground hover:underline">
-            Don't have an account? Sign up
-          </Link>
+          {passwordResetStep === "default" && (
+            <Link to="/register" className="text-sm text-muted-foreground hover:underline">
+              Don't have an account? Sign up
+            </Link>
+          )}
           {passwordResetStep !== "email" && (
             <Button
               variant="link"
