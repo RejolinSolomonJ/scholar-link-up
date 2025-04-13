@@ -10,7 +10,10 @@ import {
   Settings,
   BookOpen,
   PlusCircle,
-  Info
+  Info,
+  HelpCircle,
+  FileText,
+  Star
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -37,6 +40,13 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     { icon: PlusCircle, label: "Create Course", path: "/create-course" },
   ];
   
+  // Resource and help items
+  const resourceItems = [
+    { icon: FileText, label: "Resources", path: "/resources" },
+    { icon: Star, label: "Success Stories", path: "/success-stories" },
+    { icon: HelpCircle, label: "FAQs", path: "/faqs" },
+  ];
+  
   // Settings and About Us items for everyone
   const commonItems = [
     { icon: Settings, label: "Settings", path: "/settings" },
@@ -51,6 +61,9 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     if (user?.user_metadata?.role === 'tutor') {
       items.splice(1, 0, ...tutorItems);
     }
+    
+    // Add resource items
+    items.push(...resourceItems);
     
     // Add common items at the end
     return [...items, ...commonItems];

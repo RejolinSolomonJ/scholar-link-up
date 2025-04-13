@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -22,6 +23,7 @@ const Footer = () => {
               <li><Link to="/register?role=student" className="text-muted-foreground hover:text-foreground">Sign Up</Link></li>
               <li><Link to="/how-it-works" className="text-muted-foreground hover:text-foreground">How It Works</Link></li>
               <li><Link to="/subjects" className="text-muted-foreground hover:text-foreground">Subjects</Link></li>
+              <li><Link to="/resources" className="text-muted-foreground hover:text-foreground">Learning Resources</Link></li>
             </ul>
           </div>
 
@@ -29,9 +31,9 @@ const Footer = () => {
             <h3 className="font-medium text-lg mb-3">For Tutors</h3>
             <ul className="space-y-2">
               <li><Link to="/register?role=teacher" className="text-muted-foreground hover:text-foreground">Become a Tutor</Link></li>
-              <li><Link to="/tutor-resources" className="text-muted-foreground hover:text-foreground">Resources</Link></li>
-              <li><Link to="/tutor-success" className="text-muted-foreground hover:text-foreground">Success Stories</Link></li>
-              <li><Link to="/tutor-faq" className="text-muted-foreground hover:text-foreground">FAQs</Link></li>
+              <li><Link to="/resources" className="text-muted-foreground hover:text-foreground">Resources</Link></li>
+              <li><Link to="/success-stories" className="text-muted-foreground hover:text-foreground">Success Stories</Link></li>
+              <li><Link to="/faqs" className="text-muted-foreground hover:text-foreground">FAQs</Link></li>
             </ul>
           </div>
 
@@ -40,6 +42,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li><Link to="/about" className="text-muted-foreground hover:text-foreground">About Us</Link></li>
               <li><Link to="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
+              <li><Link to="/success-stories" className="text-muted-foreground hover:text-foreground">Success Stories</Link></li>
               <li><Link to="/privacy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
               <li><Link to="/terms" className="text-muted-foreground hover:text-foreground">Terms of Service</Link></li>
             </ul>

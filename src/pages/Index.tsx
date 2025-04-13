@@ -123,15 +123,15 @@ const Index = () => {
                       </Link>
                     </li>
                     <li>
-                      <a
-                        href="/search"
+                      <Link
+                        to="/search"
                         className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
                       >
                         <div className="text-sm font-medium leading-none">Find a Tutor</div>
                         <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
                           Search for tutors by subject, availability, and more
                         </p>
-                      </a>
+                      </Link>
                     </li>
                   </ul>
                 </NavigationMenuContent>
@@ -139,6 +139,11 @@ const Index = () => {
               <NavigationMenuItem>
                 <Link to="/how-it-works" className={cn(navigationMenuTriggerStyle())}>
                   How It Works
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link to="/faqs" className={cn(navigationMenuTriggerStyle())}>
+                  FAQs
                 </Link>
               </NavigationMenuItem>
             </NavigationMenuList>

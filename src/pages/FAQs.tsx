@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const FAQs = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -167,7 +168,7 @@ const FAQs = () => {
           Our support team is here to help. Contact us and we'll get back to you as soon as possible.
         </p>
         <Button asChild>
-          <a href="/contact">Contact Support</a>
+          <Link to="/contact">Contact Support</Link>
         </Button>
       </div>
     </div>
