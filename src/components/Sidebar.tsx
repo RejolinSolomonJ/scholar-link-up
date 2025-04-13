@@ -16,6 +16,9 @@ import {
   Star
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
+import { useEffect, useState } from "react";
+import { getConversations } from "@/lib/api";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -24,13 +27,44 @@ interface SidebarProps {
 const Sidebar = ({ isOpen }: SidebarProps) => {
   const location = useLocation();
   const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Track unread messages
+  useEffect(() => {
+    const checkUnreadMessages = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const conversations = await getConversations(user.id);
+        let count = 0;
+        
+        for (const conversation of conversations) {
+          const hasUnread = conversation.messages?.some(
+            (m: any) => m.recipient_id === user.id && !m.is_read
+          );
+          
+          if (hasUnread) count++;
+        }
+        
+        setUnreadCount(count);
+      } catch (error) {
+        console.error("Error checking unread messages:", error);
+      }
+    };
+    
+    checkUnreadMessages();
+    
+    // Poll for new messages every minute
+    const interval = setInterval(checkUnreadMessages, 60000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
   
   // Base navigation items for all users
   const baseItems = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: Search, label: "Find Tutors", path: "/search" },
     { icon: Calendar, label: "Bookings", path: "/bookings" },
-    { icon: MessageSquare, label: "Messages", path: "/messages" },
+    { icon: MessageSquare, label: "Messages", path: "/messages", badge: unreadCount > 0 ? unreadCount : undefined },
     { icon: User, label: "Profile", path: "/profile" },
   ];
   
@@ -89,7 +123,10 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
               )}
             >
               <item.icon className="mr-2 h-4 w-4" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge && (
+                <Badge variant="secondary" className="ml-auto">{item.badge}</Badge>
+              )}
             </Link>
           ))}
         </nav>
