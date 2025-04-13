@@ -1,9 +1,9 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthError } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 // Define form schema with Zod
 const formSchema = z.object({
@@ -41,7 +42,7 @@ const Login = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [passwordResetError, setPasswordResetError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { signIn, supabase } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -56,14 +57,16 @@ const Login = () => {
     setIsLoading(true);
     setPasswordResetError(null);
 
-    const { error } = await signIn({
-      email: values.email,
-      password: values.password,
-    });
-
-    if (error) {
+    try {
+      await signIn(values.email, values.password);
+      toast({
+        title: "Login Successful",
+        description: "You have successfully logged in.",
+      });
+      navigate("/dashboard");
+    } catch (error: any) {
       // Check if it's a rate limit error
-      if (error.message.includes("rate limit")) {
+      if (error.message && error.message.includes("rate limit")) {
         toast({
           title: "Too many attempts",
           description: "Too many sign in attempts, please try again later.",
@@ -78,15 +81,9 @@ const Login = () => {
         });
         setPasswordResetError(error.message);
       }
-    } else {
-      toast({
-        title: "Login Successful",
-        description: "You have successfully logged in.",
-      });
-      navigate("/dashboard");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const handleSendPasswordResetEmail = async (email: string) => {
@@ -110,7 +107,7 @@ const Login = () => {
         setResetEmailSent(true);
         setPasswordResetStep("otp");
       }
-    } catch (error) {
+    } catch (error: any) {
       setPasswordResetError("An unexpected error occurred");
       console.error(error);
     } finally {
@@ -139,7 +136,7 @@ const Login = () => {
           description: "A new OTP has been sent to your email",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       setPasswordResetError("An unexpected error occurred");
       console.error(error);
     } finally {
@@ -257,11 +254,9 @@ const Login = () => {
           )}
         </CardContent>
         <CardFooter className="flex flex-col gap-2 items-center">
-          {passwordResetStep === "default" && (
-            <Link to="/register" className="text-sm text-muted-foreground hover:underline">
-              Don't have an account? Sign up
-            </Link>
-          )}
+          <Link to="/register" className="text-sm text-muted-foreground hover:underline">
+            Don't have an account? Sign up
+          </Link>
           {passwordResetStep !== "email" && (
             <Button
               variant="link"
