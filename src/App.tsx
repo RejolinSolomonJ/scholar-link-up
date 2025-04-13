@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,18 +25,20 @@ import { Suspense, lazy } from "react";
 import { FullPageLoader } from "./components/ui/loading-states";
 import ErrorBoundary from "./components/ErrorBoundary";
 
+// Added new pages
+import Subjects from "./pages/Subjects";
+import Contact from "./pages/Contact";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import FAQs from "./pages/FAQs";
+import SuccessStories from "./pages/SuccessStories";
+import Resources from "./pages/Resources";
+
 // Lazy load components
 const CourseDetail = lazy(() => import("./pages/CourseDetail"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
-const Subjects = lazy(() => import("./pages/Subjects"));
 const BecomeATutor = lazy(() => import("./pages/BecomeATutor"));
-const Resources = lazy(() => import("./pages/Resources"));
-const SuccessStories = lazy(() => import("./pages/SuccessStories"));
-const FAQs = lazy(() => import("./pages/FAQs"));
 const Company = lazy(() => import("./pages/Company"));
-const Contact = lazy(() => import("./pages/Contact"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 
 // Configure the query client with retry and error handling
 const queryClient = new QueryClient({
@@ -84,6 +87,15 @@ const App = () => (
                   <HowItWorks />
                 </Suspense>
               } />
+              
+              {/* New public pages */}
+              <Route path="/subjects" element={<Subjects />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/faqs" element={<FAQs />} />
+              <Route path="/success-stories" element={<SuccessStories />} />
+              <Route path="/resources" element={<Resources />} />
               
               {/* Protected routes */}
               <Route element={
