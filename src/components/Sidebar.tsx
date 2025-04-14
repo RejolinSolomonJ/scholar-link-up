@@ -19,10 +19,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import { getConversations } from "@/lib/api";
+import { Conversation, Message } from "@/types/database.types";
 
 interface SidebarProps {
   isOpen: boolean;
 }
+
+// Define the extended conversation type that includes messages
+type ConversationWithMessages = Conversation & {
+  messages?: Message[];
+};
 
 // Define the NavItem interface to include the optional badge property
 interface NavItem {
@@ -49,7 +55,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
         for (const conversation of conversations) {
           // Check if conversation has unread messages
           // Note: We're now handling the fact that 'messages' might not exist on the conversation type
-          const hasUnread = conversation.messages?.some(
+          const hasUnread = (conversation as ConversationWithMessages).messages?.some(
             (m) => m.recipient_id === user.id && !m.is_read
           ) || false;
           
