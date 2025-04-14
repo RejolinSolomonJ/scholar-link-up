@@ -11,9 +11,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Conversation, Message } from '@/types/database.types';
 import { toast } from 'sonner';
 
+// Define extended types to match what comes from the API
+type ConversationWithProfiles = Conversation & {
+  profiles?: {
+    name?: string;
+    avatar_url?: string;
+    role?: string;
+  };
+  messages?: Message[];
+};
+
 export const useConversations = () => {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationWithProfiles[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);

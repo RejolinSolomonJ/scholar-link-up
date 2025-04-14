@@ -24,6 +24,14 @@ interface SidebarProps {
   isOpen: boolean;
 }
 
+// Define the NavItem interface to include the optional badge property
+interface NavItem {
+  icon: React.ElementType;
+  label: string;
+  path: string;
+  badge?: number;
+}
+
 const Sidebar = ({ isOpen }: SidebarProps) => {
   const location = useLocation();
   const { user } = useAuth();
@@ -39,9 +47,11 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
         let count = 0;
         
         for (const conversation of conversations) {
+          // Check if conversation has unread messages
+          // Note: We're now handling the fact that 'messages' might not exist on the conversation type
           const hasUnread = conversation.messages?.some(
-            (m: any) => m.recipient_id === user.id && !m.is_read
-          );
+            (m) => m.recipient_id === user.id && !m.is_read
+          ) || false;
           
           if (hasUnread) count++;
         }
@@ -60,7 +70,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   }, [user?.id]);
   
   // Base navigation items for all users
-  const baseItems = [
+  const baseItems: NavItem[] = [
     { icon: Home, label: "Dashboard", path: "/dashboard" },
     { icon: Search, label: "Find Tutors", path: "/search" },
     { icon: Calendar, label: "Bookings", path: "/bookings" },
@@ -69,20 +79,20 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
   ];
   
   // Additional items for tutors
-  const tutorItems = [
+  const tutorItems: NavItem[] = [
     { icon: BookOpen, label: "My Courses", path: "/courses" },
     { icon: PlusCircle, label: "Create Course", path: "/create-course" },
   ];
   
   // Resource and help items
-  const resourceItems = [
+  const resourceItems: NavItem[] = [
     { icon: FileText, label: "Resources", path: "/resources" },
     { icon: Star, label: "Success Stories", path: "/success-stories" },
     { icon: HelpCircle, label: "FAQs", path: "/faqs" },
   ];
   
   // Settings and About Us items for everyone
-  const commonItems = [
+  const commonItems: NavItem[] = [
     { icon: Settings, label: "Settings", path: "/settings" },
     { icon: Info, label: "About Us", path: "/about" }
   ];

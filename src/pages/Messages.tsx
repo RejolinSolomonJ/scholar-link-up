@@ -12,6 +12,16 @@ import { useConversations } from "@/hooks/useConversations";
 import { useAuth } from "@/contexts/AuthContext";
 import { MessageSquare } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Conversation, Message } from "@/types/database.types";
+
+// Define extended types to match what comes from the API
+type ConversationWithProfiles = Conversation & {
+  profiles?: {
+    name?: string;
+    avatar_url?: string;
+    role?: string;
+  };
+};
 
 const Messages = () => {
   const [searchParams] = useSearchParams();
@@ -36,8 +46,8 @@ const Messages = () => {
     if (initialUser && conversations.length > 0) {
       const convo = conversations.find(c => {
         const otherUserName = user?.id === c.student_id 
-          ? c?.profiles?.name?.toLowerCase() 
-          : c?.profiles?.name?.toLowerCase();
+          ? (c as ConversationWithProfiles)?.profiles?.name?.toLowerCase() 
+          : (c as ConversationWithProfiles)?.profiles?.name?.toLowerCase();
         
         return otherUserName?.includes(initialUser.toLowerCase());
       });
@@ -56,8 +66,8 @@ const Messages = () => {
   // Filter conversations based on search query
   const filteredConversations = conversations.filter(conversation => {
     const otherUser = user?.id === conversation.student_id 
-      ? conversation.profiles 
-      : conversation.profiles;
+      ? (conversation as ConversationWithProfiles).profiles 
+      : (conversation as ConversationWithProfiles).profiles;
     
     return otherUser?.name?.toLowerCase().includes(searchQuery.toLowerCase());
   });
