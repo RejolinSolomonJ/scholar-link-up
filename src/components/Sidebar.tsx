@@ -90,7 +90,7 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     { icon: PlusCircle, label: "Create Course", path: "/create-course" },
   ];
   
-  // Resource and help items
+  // Resource and help items - only shown to tutors
   const resourceItems: NavItem[] = [
     { icon: FileText, label: "Resources", path: "/resources" },
     { icon: Star, label: "Success Stories", path: "/success-stories" },
@@ -110,10 +110,10 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     // Add tutor-specific items if the user is a tutor
     if (user?.user_metadata?.role === 'tutor') {
       items.splice(1, 0, ...tutorItems);
+      
+      // Add resource items only for tutors
+      items.push(...resourceItems);
     }
-    
-    // Add resource items
-    items.push(...resourceItems);
     
     // Add common items at the end
     return [...items, ...commonItems];

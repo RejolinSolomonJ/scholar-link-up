@@ -549,7 +549,7 @@ export const enrollInCourse = async (courseId: string, studentId: string): Promi
     // First get the course details to identify the tutor
     const { data: courseData, error: courseError } = await supabase
       .from('courses')
-      .select('*, profiles(*)')
+      .select('*, profiles(*), subjects(*)')
       .eq('id', courseId)
       .single();
     
@@ -592,6 +592,30 @@ export const enrollInCourse = async (courseId: string, studentId: string): Promi
         studentData.name, 
         courseData.title
       );
+      
+      // Automatically create a booking for this course enrollment
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      
+      // Set booking start time to next week at 10 AM
+      const startTime = new Date(nextWeek);
+      startTime.setHours(10, 0, 0, 0);
+      
+      // Set booking end time to 1 hour after start time
+      const endTime = new Date(startTime);
+      endTime.setHours(endTime.getHours() + 1);
+      
+      await createBooking({
+        student_id: studentId,
+        tutor_id: courseData.tutor_id,
+        subject_id: courseData.subject_id,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        status: 'requested',
+        mode: 'online',
+        notes: `Initial session for course: ${courseData.title}`,
+        amount: courseData.price ? courseData.price / courseData.duration_weeks : null,
+      });
     }
     
     // Update course current_students count
