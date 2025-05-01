@@ -213,7 +213,7 @@ export const getBooking = async (bookingId: string): Promise<Booking | null> => 
 export const getUserBookings = async (userId: string): Promise<Booking[]> => {
   const { data, error } = await supabase
     .from('bookings')
-    .select('*, profiles!bookings_tutor_id_fkey(*), subjects(*)')
+    .select('*, profiles!bookings_tutor_id_fkey(*), profiles!bookings_student_id_fkey(*) as student_profile, subjects(*)')
     .or(`student_id.eq.${userId},tutor_id.eq.${userId}`)
     .order('start_time', { ascending: false });
   

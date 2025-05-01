@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner, ErrorDisplay } from "@/components/ui/loading-states";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Users, Calendar, BookOpen, ChevronLeft } from "lucide-react";
+import { Clock, Users, Calendar, BookOpen, ChevronLeft, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 const getLevelBadgeColor = (level: string) => {
   switch (level) {
@@ -104,6 +105,12 @@ const CourseDetail = () => {
       setEnrolling(false);
     }
   };
+  
+  const handleMessage = () => {
+    if (course?.tutor_id) {
+      navigate(`/messages?tutorId=${course.tutor_id}`);
+    }
+  };
 
   if (loading) {
     return (
@@ -178,7 +185,7 @@ const CourseDetail = () => {
             </CardContent>
             
             {isStudent && !isEnrolled && (
-              <CardFooter>
+              <CardFooter className="flex flex-col sm:flex-row gap-2">
                 <Button 
                   className="w-full" 
                   onClick={handleEnroll} 
@@ -186,13 +193,28 @@ const CourseDetail = () => {
                 >
                   {enrolling ? "Enrolling..." : isFull ? "Course is Full" : "Enroll Now"}
                 </Button>
+                <Button 
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleMessage}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Message Tutor
+                </Button>
               </CardFooter>
             )}
             
             {isStudent && isEnrolled && (
-              <CardFooter>
+              <CardFooter className="flex flex-col sm:flex-row gap-2">
                 <Button className="w-full" variant="outline" disabled>
                   Already Enrolled
+                </Button>
+                <Button 
+                  className="w-full"
+                  onClick={handleMessage}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Message Tutor
                 </Button>
               </CardFooter>
             )}
@@ -256,6 +278,15 @@ const CourseDetail = () => {
                             Enrolled: {new Date(enrollment.enrollment_date).toLocaleDateString()}
                           </p>
                         </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          asChild
+                        >
+                          <Link to={`/messages?studentId=${enrollment.student_id}`}>
+                            <MessageSquare className="h-4 w-4" />
+                          </Link>
+                        </Button>
                       </div>
                     ))}
                   </div>

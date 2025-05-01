@@ -7,7 +7,7 @@ import { Course, CourseEnrollment } from "@/types/database.types";
 import { LoadingSpinner, ErrorDisplay } from "@/components/ui/loading-states";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { PlusCircle, Filter } from "lucide-react";
+import { PlusCircle, Filter, MessageSquare } from "lucide-react";
 import CourseCard from "@/components/CourseCard";
 import { toast } from "sonner";
 import { 
@@ -17,7 +17,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { getSubjects } from "@/lib/api";
 import { Subject } from "@/types/database.types";
@@ -106,8 +105,12 @@ const MyCourses = () => {
     
     // Apply mode filter - assuming there might be a mode property in the future
     // This is a placeholder for when course mode is implemented
-    if (selectedMode && courses[0]?.hasOwnProperty('mode')) {
-      filtered = filtered.filter((course: any) => course.mode === selectedMode);
+    if (selectedMode) {
+      if (selectedMode === 'online') {
+        filtered = filtered.filter(course => !course.profiles?.location);
+      } else if (selectedMode === 'in-person') {
+        filtered = filtered.filter(course => course.profiles?.location);
+      }
     }
     
     // Apply price filter
@@ -135,6 +138,11 @@ const MyCourses = () => {
       console.error("Error enrolling in course:", error);
       toast.error("Failed to enroll in the course. Please try again.");
     }
+  };
+  
+  const handleMessage = (tutorId: string) => {
+    if (!user) return;
+    window.location.href = `/messages?tutorId=${tutorId}`;
   };
 
   if (profileLoading || loading) {
@@ -282,7 +290,16 @@ const MyCourses = () => {
           {courses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map(course => (
-                <CourseCard key={course.id} course={course} />
+                <div key={course.id} className="relative">
+                  <CourseCard course={course} />
+                  <div className="absolute bottom-4 right-4">
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link to={`/courses/${course.id}`}>
+                        {course.current_students || 0}/{course.max_students} Students
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           ) : (
@@ -303,7 +320,18 @@ const MyCourses = () => {
               <h2 className="text-xl font-semibold mt-8 mb-4">My Enrolled Courses</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {enrolledCourses.map(course => (
-                  <CourseCard key={course.id} course={course} />
+                  <div key={course.id} className="relative">
+                    <CourseCard course={course} />
+                    <div className="absolute bottom-4 right-4 flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="secondary"
+                        onClick={() => handleMessage(course.tutor_id)}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </>
@@ -316,9 +344,17 @@ const MyCourses = () => {
                 <div key={course.id} className="relative">
                   <CourseCard course={course} />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 hover:opacity-100 transition-opacity">
-                    <Button onClick={() => handleEnroll(course.id)}>
-                      Enroll Now
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => handleEnroll(course.id)}>
+                        Enroll Now
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => handleMessage(course.tutor_id)}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

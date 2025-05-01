@@ -11,9 +11,7 @@ import {
   BookOpen,
   PlusCircle,
   Info,
-  HelpCircle,
-  FileText,
-  Star
+  HelpCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -90,13 +88,6 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     { icon: PlusCircle, label: "Create Course", path: "/create-course" },
   ];
   
-  // Resource and help items - only shown to tutors
-  const resourceItems: NavItem[] = [
-    { icon: FileText, label: "Resources", path: "/resources" },
-    { icon: Star, label: "Success Stories", path: "/success-stories" },
-    { icon: HelpCircle, label: "FAQs", path: "/faqs" },
-  ];
-  
   // Settings and About Us items for everyone
   const commonItems: NavItem[] = [
     { icon: Settings, label: "Settings", path: "/settings" },
@@ -110,9 +101,6 @@ const Sidebar = ({ isOpen }: SidebarProps) => {
     // Add tutor-specific items if the user is a tutor
     if (user?.user_metadata?.role === 'tutor') {
       items.splice(1, 0, ...tutorItems);
-      
-      // Add resource items only for tutors
-      items.push(...resourceItems);
     }
     
     // Add common items at the end
