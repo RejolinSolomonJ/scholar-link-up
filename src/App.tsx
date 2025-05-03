@@ -24,6 +24,7 @@ import { useAuth } from "./contexts/AuthContext";
 import { Suspense, lazy } from "react";
 import { FullPageLoader } from "./components/ui/loading-states";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ResetPassword from "./pages/ResetPassword";
 
 // Added new pages
 import Subjects from "./pages/Subjects";
