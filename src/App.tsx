@@ -79,6 +79,7 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/auth-redirect" element={<AuthRedirect />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/about" element={<AboutUs />} />
               
               {/* Public pages */}
